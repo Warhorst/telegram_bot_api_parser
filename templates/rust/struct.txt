@@ -1,0 +1,8 @@
+{{uses}}
+
+#[derive()]
+pub struct {{dto_name}} {
+    {{fields}}
+
+    {{getter}}
+}

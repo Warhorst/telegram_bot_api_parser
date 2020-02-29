@@ -1,0 +1,41 @@
+{
+  "integer_type": "u64",
+  "string_type": "String",
+  "boolean_type": "bool",
+  "array_type": "Vec<{{type}}>",
+  "optional_type": "Option<{{type}}>",
+  "template_files": [
+    {
+      "template_path": "rust/struct.txt",
+      "target_path": "{{dto_name_snake_case}}.rs",
+      "strategy": "FOR_EACH_DTO"
+    },
+    {
+      "template_path": "rust/mod.txt",
+      "target_path": "mod.rs",
+      "strategy": "ONCE"
+    }
+  ],
+  "custom_template_listings": [
+    {
+      "name": "uses",
+      "item_template": "use super::{{dto_name_snake_case}}::{{dto_name}}\n",
+      "strategy": "FOR_EACH_DTO"
+    },
+    {
+      "name": "fields",
+      "item_template": "{{field_name}}: {{field_type}}\n",
+      "strategy": "FOR_EACH_FIELD"
+    },
+    {
+      "name": "getter",
+      "item_template": "pub fn get{{field_name}}(&self) -> &{{field_type}} { &self.{{field_name}} }\n\n",
+      "strategy": "FOR_EACH_FIELD"
+    },
+    {
+      "name": "modules",
+      "item_template": "pub mod {{dto_name_snake_case}}\n",
+      "strategy": "FOR_EACH_DTO"
+    }
+  ]
+}
