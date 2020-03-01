@@ -9,14 +9,14 @@ pub enum FileStrategy {
     Once
 }
 
-impl TryFrom<String> for FileStrategy {
+impl TryFrom<&String> for FileStrategy {
     type Error = NoValidFileStrategyError;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
         match value.as_str() {
             "FOR_EACH_DTO" => Ok(ForEachDTO),
             "ONCE" => Ok(Once),
-            _ => Err(NoValidFileStrategyError { value })
+            _ => Err(NoValidFileStrategyError { value: value.clone() })
         }
     }
 }

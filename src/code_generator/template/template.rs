@@ -6,8 +6,7 @@ pub struct Template {
     string_type: String,
     boolean_type: String,
     optional_type: String,
-    template_files: Vec<TemplateFile>,
-    custom_template_listings: Vec<TemplateListing>
+    template_files: Vec<TemplateFile>
 }
 
 impl Template {
@@ -29,9 +28,5 @@ impl Template {
 
     pub fn get_template_files(&self) -> &Vec<TemplateFile> {
         &self.template_files
-    }
-
-    pub fn get_custom_template_listings(&self) -> &Vec<TemplateListing> {
-        &self.custom_template_listings
     }
 }
