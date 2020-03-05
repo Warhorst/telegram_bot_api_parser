@@ -2,8 +2,8 @@
   "integer_type": "u64",
   "string_type": "String",
   "boolean_type": "bool",
-  "array_type": "Vec<{{type}}>",
-  "optional_type": "Option<{{type}}>",
+  "array_type": "Vec<{{value}}>",
+  "optional_type": "Option<{{value}}>",
   "template_files": [
     {
       "template_path": "rust/struct.txt",
