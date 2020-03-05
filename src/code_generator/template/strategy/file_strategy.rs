@@ -30,6 +30,6 @@ impl std::error::Error for NoValidFileStrategyError {}
 
 impl std::fmt::Display for NoValidFileStrategyError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "The given value {} is not a valid strategy!", self.value)
+        writeln!(f, "The given value {} is not a valid strategy!", self.value)
     }
 }

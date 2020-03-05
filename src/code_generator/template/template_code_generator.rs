@@ -18,12 +18,12 @@ impl TemplateCodeGenerator {
         TemplateCodeGenerator { template }
     }
 
-    fn resolve_once(&self, template_file: &TemplateFile, api: &TelegramBotApiRaw) {
-
+    fn resolve_once(&self, template_file: &TemplateFile, api: &TelegramBotApiRaw) -> TargetFilesMap {
+        TargetFilesMap::new()
     }
 
-    fn resolve_for_each_dto(&self, template_file: &TemplateFile, api: &TelegramBotApiRaw) {
-
+    fn resolve_for_each_dto(&self, template_file: &TemplateFile, api: &TelegramBotApiRaw) -> TargetFilesMap {
+        TargetFilesMap::new()
     }
 }
 
@@ -31,23 +31,21 @@ impl CodeGenerator for TemplateCodeGenerator {
     type Error = TemplateCodeGenerationError;
 
     fn generate(&self, api: TelegramBotApiRaw) -> Result<TargetFilesMap, Self::Error> {
+        let mut result = TargetFilesMap::new();
+
         for template_file in self.template.get_template_files() {
             // let content = read_to_string(template_file.get_template_path())?;
 
             let file_strategy = FileStrategy::try_from(template_file.get_strategy())?;
 
-            match file_strategy {
+            let generated_code = match file_strategy {
                 FileStrategy::Once => self.resolve_once(template_file, &api),
                 FileStrategy::ForEachDTO => self.resolve_for_each_dto(template_file, &api)
-            }
+            };
+
+            result.insert_all(generated_code)?
         }
 
-
-        unimplemented!()
-
-        //template analysieren
-        // 1. Typ-Entsprechungen entnehmen, für array und optional Templates registrieren
-        // 2. Template-Dateien sichten, je nach hinterlegter Strategie auflösen
-        // 3. Betrachtete Datei auslesen (als  template registrieren)
+        Ok(result)
     }
 }
