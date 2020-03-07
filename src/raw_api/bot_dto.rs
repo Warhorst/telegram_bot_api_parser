@@ -7,3 +7,13 @@ pub struct BotDTO {
     name: DTOName,
     fields: Vec<DTOField>
 }
+
+impl BotDTO {
+    pub fn get_name(&self) -> &DTOName {
+        &self.name
+    }
+
+    pub fn get_fields(&self) -> &Vec<DTOField> {
+        &self.fields
+    }
+}

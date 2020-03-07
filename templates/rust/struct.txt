@@ -3,6 +3,8 @@
 #[derive()]
 pub struct {{dto_name}} {
     {{fields}}
+}
 
+impl {{dto_name}} {
     {{getter}}
 }

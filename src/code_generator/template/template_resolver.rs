@@ -1,5 +1,10 @@
 use handlebars::{Handlebars, TemplateError};
 use serde::Serialize;
+use crate::raw_api::bot_dto::BotDTO;
+use crate::code_generator::template::strategy::file_strategy::FileStrategy;
+use std::convert::TryFrom;
+use crate::util::to_snake_case;
+use crate::code_generator::template::template_file::TemplateFile;
 cfg_if! {
     if #[cfg(test)] {
         use crate::code_generator::template::template::MockTemplate as Template;
@@ -29,6 +34,7 @@ impl<'a> TemplateResolver<'a> {
         handlebars.register_template_string(TemplateResolver::ARRAY_TEMPLATE, template.get_array_type())?;
         handlebars.register_template_string(TemplateResolver::OPTIONAL_TEMPLATE, template.get_optional_type())?;
 
+
         Ok(TemplateResolver {
             integer_type: template.get_integer_type().to_owned(),
             string_type: template.get_string_type().to_owned(),
@@ -37,19 +43,59 @@ impl<'a> TemplateResolver<'a> {
         })
     }
 
-    pub fn get_optional_value(&self, value: String) -> String {
-        self.registry.render(TemplateResolver::OPTIONAL_TEMPLATE, &ValueHolder { value }).unwrap()
+    pub fn resolve_for_each_dto(&self, template_file: &TemplateFile, dtos: &Vec<BotDTO>) {}
+
+    pub fn resolve_for_dto(&self, template_file: &TemplateFile, dto: &BotDTO) {
+        let mut tmp_registry = Handlebars::new();
+        let listings = template_file.get_template_listings().as_ref().unwrap();
+
+        for listing in listings {
+            tmp_registry.register_template_string("curr_item", listing.get_item_template());
+
+            for field in dto.get_fields() {
+                // 1. Serialize-Objekt Feld-Name/Typ/TypSnakeCase erstellen
+                // 2. String rendern
+                // 3. erstellten String an Gesamtstring anheften
+                // 4. template-listing mit Gesamtstring auflösen
+
+                // let value_holder = FieldValueHolder::new(field)
+            }
+        }
     }
 
-    pub fn get_array_value(&self, value: String) -> String {
-        self.registry.render(TemplateResolver::ARRAY_TEMPLATE, &ValueHolder { value }).unwrap()
+    fn get_optional_value(&self, value: String) -> String {
+        self.registry.render(TemplateResolver::OPTIONAL_TEMPLATE, &SingleValueHolder { value }).unwrap()
+    }
+
+    fn get_array_value(&self, value: String) -> String {
+        self.registry.render(TemplateResolver::ARRAY_TEMPLATE, &SingleValueHolder { value }).unwrap()
     }
 }
 
 #[derive(Serialize)]
 /// Wraps a single String so it can be processed by handlebars.
-struct ValueHolder {
+struct SingleValueHolder {
     pub value: String
+}
+
+#[derive(Serialize)]
+/// Wraps all values of a field so it can be processed by handlebars.
+struct FieldValueHolder {
+    name: String,
+    field_type: String,
+    field_type_snake_case: String,
+}
+
+impl FieldValueHolder {
+    pub fn new(name: String, field_type: String) -> Self {
+        let field_type_snake_case = to_snake_case(&field_type);
+
+        FieldValueHolder {
+            name,
+            field_type,
+            field_type_snake_case
+        }
+    }
 }
 
 #[cfg(test)]

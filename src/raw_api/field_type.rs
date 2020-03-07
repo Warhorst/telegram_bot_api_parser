@@ -1,11 +1,13 @@
 use crate::raw_api::bot_dto::DTOName;
-use crate::raw_api::field_type::FieldType::ArrayOf;
+use crate::raw_api::field_type::FieldType::{ArrayOf, Optional};
+use crate::raw_api::dto_field::DTOFieldType;
 
 pub enum FieldType {
     Integer,
     String,
     DTO(DTOName),
-    ArrayOf(Box<FieldType>)
+    ArrayOf(Box<FieldType>),
+    Optional(Box<FieldType>)
 }
 
 impl FieldType {
@@ -22,11 +24,19 @@ impl FieldType {
     }
 }
 
-impl From<String> for FieldType {
-    /// Create a FieldType from a given String (extracted from the API-HTML)
+impl From<DTOFieldType> for FieldType {
+    /// Create a FieldType from a given DTOFieldType (extracted from the API-HTML)
     ///
-    /// If the String contains "Array of", the type is an array encapsulating a FieldType
-    fn from(value: String) -> Self {
+    /// If the DTOFieldType-description contains "Array of", the type is an array encapsulating a FieldType.
+    /// If the DTOFieldType is optional, the type is an optional encapsulating a FieldType.
+    /// Only the whole type can be optional, so Array of Optional for example is not possible.
+    fn from(dto_field_type: DTOFieldType) -> Self {
+        let value = dto_field_type.get_description();
+
+        if *dto_field_type.is_optional() {
+            return FieldType::Optional(Box::new(FieldType::from(DTOFieldType::new(value.to_owned(), false))));
+        }
+
         match value.as_str() {
             FieldType::INTEGER => FieldType::Integer,
             FieldType::STRING => FieldType::String,
@@ -35,9 +45,9 @@ impl From<String> for FieldType {
 
                 if trimmed.starts_with(FieldType::ARRAY_OF){
                     let result = String::from(&trimmed.as_str()[FieldType::ARRAY_OF.len()..trimmed.len()]);
-                    ArrayOf(Box::new(FieldType::from(result)))
+                    FieldType::ArrayOf(Box::new(FieldType::from(DTOFieldType::new(result, false))))
                 } else {
-                    FieldType::DTO(value)
+                    FieldType::DTO(value.to_owned())
                 }
             }
         }
@@ -47,10 +57,11 @@ impl From<String> for FieldType {
 #[cfg(test)]
 mod tests {
     use crate::raw_api::field_type::FieldType;
+    use crate::raw_api::dto_field::DTOFieldType;
 
     #[test]
     fn success_integer() {
-        let input = String::from("Integer");
+        let input = DTOFieldType::new(String::from("Integer"), false);
         let field_type = FieldType::from(input);
 
         match field_type {
@@ -61,7 +72,7 @@ mod tests {
 
     #[test]
     fn success_string() {
-        let input = String::from("String");
+        let input = DTOFieldType::new(String::from("String"), false);
         let field_type = FieldType::from(input);
 
         match field_type {
@@ -72,12 +83,12 @@ mod tests {
 
     #[test]
     fn success_dto() {
-        let input = String::from("Update");
+        let input = DTOFieldType::new(String::from("Update"), false);
         let field_type = FieldType::from(input.clone());
 
         match field_type {
             FieldType::DTO(dto_name) => {
-                assert_eq!(dto_name, input)
+                assert_eq!(&dto_name, input.get_description())
             },
             _ => panic!("Value not parsed to DTO!")
         }
@@ -89,7 +100,7 @@ mod tests {
         let value = String::from("Integer");
         array_of.push_str(value.as_str());
 
-        let field_type = FieldType::from(array_of);
+        let field_type = FieldType::from(DTOFieldType::new(array_of, false));
 
         match field_type {
             FieldType::ArrayOf(array_value) => {
@@ -107,7 +118,7 @@ mod tests {
         let value = String::from("Update");
         array_of.push_str(value.as_str());
 
-        let field_type = FieldType::from(array_of);
+        let field_type = FieldType::from(DTOFieldType::new(array_of, false));
 
         match field_type {
             FieldType::ArrayOf(array_value) => {
@@ -119,6 +130,37 @@ mod tests {
                 }
             }
             _ => panic!("Value not parsed to Array!")
+        }
+    }
+
+    #[test]
+    fn success_optional() {
+        let input = DTOFieldType::new(String::from("String"), true);
+        let field_type = FieldType::from(input);
+
+        match field_type {
+            FieldType::Optional(value) => match *value {
+                FieldType::String => (),
+                _ => panic!("Value not parsed to String!")
+            },
+            _ => panic!("Value not parsed to Optional!")
+        }
+    }
+
+    #[test]
+    fn success_optional_of_array() {
+        let input = DTOFieldType::new(String::from("Array of String"), true);
+        let field_type = FieldType::from(input);
+
+        match field_type {
+            FieldType::Optional(optional_value) => match *optional_value {
+                FieldType::ArrayOf(array_value) => match *array_value {
+                    FieldType::String => (),
+                    _ => panic!("Value not parsed to String!")
+                },
+                _ => panic!("Value not parsed to Array!")
+            },
+            _ => panic!("Value not parsed to Optional!")
         }
     }
 }
