@@ -5,6 +5,7 @@ use crate::raw_api::dto_field::DTOFieldType;
 pub enum FieldType {
     Integer,
     String,
+    Boolean,
     DTO(DTOName),
     ArrayOf(Box<FieldType>),
     Optional(Box<FieldType>)
@@ -13,6 +14,7 @@ pub enum FieldType {
 impl FieldType {
     const INTEGER: &'static str = "Integer";
     const STRING: &'static str = "String";
+    const BOOLEAN: &'static str = "Boolean";
     const ARRAY_OF: &'static str = "Arrayof";
 
     /// Returns a clone of the given String without whitespace
@@ -40,6 +42,7 @@ impl From<DTOFieldType> for FieldType {
         match value.as_str() {
             FieldType::INTEGER => FieldType::Integer,
             FieldType::STRING => FieldType::String,
+            FieldType::BOOLEAN => FieldType::Boolean,
             _ => {
                 let mut trimmed = FieldType::trim_whitespace(&value);
 

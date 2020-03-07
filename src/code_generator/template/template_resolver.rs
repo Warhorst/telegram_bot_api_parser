@@ -5,6 +5,7 @@ use crate::code_generator::template::strategy::file_strategy::FileStrategy;
 use std::convert::TryFrom;
 use crate::util::to_snake_case;
 use crate::code_generator::template::template_file::TemplateFile;
+use crate::raw_api::field_type::FieldType;
 cfg_if! {
     if #[cfg(test)] {
         use crate::code_generator::template::template::MockTemplate as Template;
@@ -63,6 +64,17 @@ impl<'a> TemplateResolver<'a> {
         }
     }
 
+    fn get_field_type_string(&self, field_type: FieldType) -> String {
+        match field_type {
+            FieldType::Integer => self.integer_type.clone(),
+            FieldType::String => self.string_type.clone(),
+            FieldType::Boolean => self.boolean_type.clone(),
+            FieldType::DTO(dto_name) => dto_name,
+            FieldType::ArrayOf(array_field_type) => self.get_array_value(self.get_field_type_string(*array_field_type)),
+            FieldType::Optional(optional_field_type) => self.get_optional_value(self.get_field_type_string(*optional_field_type))
+        }
+    }
+
     fn get_optional_value(&self, value: String) -> String {
         self.registry.render(TemplateResolver::OPTIONAL_TEMPLATE, &SingleValueHolder { value }).unwrap()
     }
@@ -102,15 +114,42 @@ impl FieldValueHolder {
 mod tests {
     use crate::code_generator::template::template_resolver::TemplateResolver;
     use super::Template;
+    use crate::raw_api::field_type::FieldType;
 
     #[test]
-    fn success_get_optional() {
-        assert_eq!(create_resolver().get_optional_value(String::from("Update")), String::from("Option<Update>"))
+    fn success_get_field_type_integer_string() {
+        let input = FieldType::Integer;
+        assert_eq!(create_resolver().get_field_type_string(input), String::from("u64"))
     }
 
     #[test]
-    fn success_get_array() {
-        assert_eq!(create_resolver().get_array_value(String::from("Update")), String::from("Vec<Update>"))
+    fn success_get_field_type_string_string() {
+        let input = FieldType::String;
+        assert_eq!(create_resolver().get_field_type_string(input), String::from("String"))
+    }
+
+    #[test]
+    fn success_get_field_type_boolean_string() {
+        let input = FieldType::Boolean;
+        assert_eq!(create_resolver().get_field_type_string(input), String::from("bool"))
+
+    }
+
+    #[test]
+    fn success_get_field_type_optional_string() {
+        let input = FieldType::Optional(Box::new(FieldType::DTO(String::from("Update"))));
+        assert_eq!(create_resolver().get_field_type_string(input), String::from("Option<Update>"))
+    }
+
+    #[test]
+    fn success_get_field_type_array_string() {
+        let input = FieldType::ArrayOf(Box::new(FieldType::DTO(String::from("Update"))));
+        assert_eq!(create_resolver().get_field_type_string(input), String::from("Vec<Update>"))
+    }
+
+    #[test]
+    fn success_get_field_type_optional_array_string() {
+        let input = FieldType::Optional(Box::new(FieldType::ArrayOf(Box::new(FieldType::DTO(String::from("Option<Vec<Update>>"))))));
     }
 
     fn create_resolver() -> TemplateResolver<'static> {
