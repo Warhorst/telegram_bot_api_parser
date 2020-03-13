@@ -1,10 +1,16 @@
-{{uses}}
+{{#each dto.fields}}
+use super::{{this.type_snake_case}}::{{this.type}};\n
+{{/each}}
 
 #[derive()]
-pub struct {{dto_name}} {
-    {{fields}}
+pub struct {{dto.name}} {
+    {{#each dto.fields}}
+    {{this.name}}: {{this.type}},\n
+    {{/each}}
 }
 
-impl {{dto_name}} {
-    {{getter}}
+impl {{dto.name}} {
+    {{#each dto.fields}}
+    pub fn get_{{this.name}}(&self) -> &{{this.type}} { &self.{{this.name}} }\n\n
+    {{/each}}
 }

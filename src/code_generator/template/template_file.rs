@@ -1,11 +1,8 @@
-use crate::code_generator::template::template_listing::TemplateListing;
-
 /// Contains the data of a template-file and how it should be transformed into generated code
 pub struct TemplateFile {
     template_path: String,
     target_path: String,
-    strategy: String,
-    template_listings: Option<Vec<TemplateListing>>
+    resolve_strategy: String,
 }
 
 impl TemplateFile {
@@ -17,11 +14,7 @@ impl TemplateFile {
         &self.target_path
     }
 
-    pub fn get_strategy(&self) -> &String {
-        &self.strategy
-    }
-
-    pub fn get_template_listings(&self) -> &Option<Vec<TemplateListing>> {
-        &self.template_listings
+    pub fn get_resolve_strategy(&self) -> &String {
+        &self.resolve_strategy
     }
 }

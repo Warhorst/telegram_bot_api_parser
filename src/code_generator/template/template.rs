@@ -1,5 +1,4 @@
 use crate::code_generator::template::template_file::TemplateFile;
-use crate::code_generator::template::template_listing::TemplateListing;
 use mockall::automock;
 
 pub struct Template {

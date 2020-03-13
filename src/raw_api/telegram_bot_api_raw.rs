@@ -4,3 +4,9 @@ use crate::raw_api::bot_dto::BotDTO;
 pub struct TelegramBotApiRaw {
     bot_dtos: Vec<BotDTO>
 }
+
+impl TelegramBotApiRaw {
+    pub fn get_bot_dtos(&self) -> &Vec<BotDTO> {
+        &self.bot_dtos
+    }
+}

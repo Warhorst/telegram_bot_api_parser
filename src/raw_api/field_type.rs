@@ -1,12 +1,10 @@
-use crate::raw_api::bot_dto::DTOName;
-use crate::raw_api::field_type::FieldType::{ArrayOf, Optional};
-use crate::raw_api::dto_field::DTOFieldType;
+use crate::raw_api::dto_field::FieldDescription;
 
 pub enum FieldType {
     Integer,
     String,
     Boolean,
-    DTO(DTOName),
+    DTO(String),
     ArrayOf(Box<FieldType>),
     Optional(Box<FieldType>)
 }
@@ -17,6 +15,19 @@ impl FieldType {
     const BOOLEAN: &'static str = "Boolean";
     const ARRAY_OF: &'static str = "Arrayof";
 
+    /// Returns the DTOName of this FieldType.
+    ///
+    /// If this FieldType is Integer, String or Boolean, None is returned.
+    /// If this FieldType is wrapped in an Array or Optional, the DTOName of the wrapped value will be returned.
+    pub fn get_dto_name(&self) -> Option<String> {
+        match self {
+            FieldType::DTO(dto_name) => Some(dto_name.clone()),
+            FieldType::ArrayOf(array_field_type) => array_field_type.get_dto_name(),
+            FieldType::Optional(optional_field_type) => optional_field_type.get_dto_name(),
+            _ => None
+        }
+    }
+
     /// Returns a clone of the given String without whitespace
     fn trim_whitespace(string: &String) -> String {
         let mut result = string.clone();
@@ -26,17 +37,17 @@ impl FieldType {
     }
 }
 
-impl From<DTOFieldType> for FieldType {
-    /// Create a FieldType from a given DTOFieldType (extracted from the API-HTML)
+impl From<FieldDescription> for FieldType {
+    /// Create a FieldType from a given FieldDescription (extracted from the API-HTML)
     ///
-    /// If the DTOFieldType-description contains "Array of", the type is an array encapsulating a FieldType.
-    /// If the DTOFieldType is optional, the type is an optional encapsulating a FieldType.
+    /// If the FieldDescription-value contains "Array of", the type is an array encapsulating a FieldType.
+    /// If the FieldDescription is optional, the type is an optional encapsulating a FieldType.
     /// Only the whole type can be optional, so Array of Optional for example is not possible.
-    fn from(dto_field_type: DTOFieldType) -> Self {
-        let value = dto_field_type.get_description();
+    fn from(field_description: FieldDescription) -> Self {
+        let value = field_description.value;
 
-        if *dto_field_type.is_optional() {
-            return FieldType::Optional(Box::new(FieldType::from(DTOFieldType::new(value.to_owned(), false))));
+        if field_description.optional {
+            return FieldType::Optional(Box::new(FieldType::from(FieldDescription::new(value, false))));
         }
 
         match value.as_str() {
@@ -48,9 +59,9 @@ impl From<DTOFieldType> for FieldType {
 
                 if trimmed.starts_with(FieldType::ARRAY_OF){
                     let result = String::from(&trimmed.as_str()[FieldType::ARRAY_OF.len()..trimmed.len()]);
-                    FieldType::ArrayOf(Box::new(FieldType::from(DTOFieldType::new(result, false))))
+                    FieldType::ArrayOf(Box::new(FieldType::from(FieldDescription::new(result, false))))
                 } else {
-                    FieldType::DTO(value.to_owned())
+                    FieldType::DTO(value)
                 }
             }
         }
@@ -60,11 +71,11 @@ impl From<DTOFieldType> for FieldType {
 #[cfg(test)]
 mod tests {
     use crate::raw_api::field_type::FieldType;
-    use crate::raw_api::dto_field::DTOFieldType;
+    use crate::raw_api::dto_field::FieldDescription;
 
     #[test]
     fn success_integer() {
-        let input = DTOFieldType::new(String::from("Integer"), false);
+        let input = FieldDescription::new(String::from("Integer"), false);
         let field_type = FieldType::from(input);
 
         match field_type {
@@ -75,7 +86,7 @@ mod tests {
 
     #[test]
     fn success_string() {
-        let input = DTOFieldType::new(String::from("String"), false);
+        let input = FieldDescription::new(String::from("String"), false);
         let field_type = FieldType::from(input);
 
         match field_type {
@@ -86,12 +97,12 @@ mod tests {
 
     #[test]
     fn success_dto() {
-        let input = DTOFieldType::new(String::from("Update"), false);
+        let input = FieldDescription::new(String::from("Update"), false);
         let field_type = FieldType::from(input.clone());
 
         match field_type {
             FieldType::DTO(dto_name) => {
-                assert_eq!(&dto_name, input.get_description())
+                assert_eq!(dto_name, input.value)
             },
             _ => panic!("Value not parsed to DTO!")
         }
@@ -103,7 +114,7 @@ mod tests {
         let value = String::from("Integer");
         array_of.push_str(value.as_str());
 
-        let field_type = FieldType::from(DTOFieldType::new(array_of, false));
+        let field_type = FieldType::from(FieldDescription::new(array_of, false));
 
         match field_type {
             FieldType::ArrayOf(array_value) => {
@@ -121,7 +132,7 @@ mod tests {
         let value = String::from("Update");
         array_of.push_str(value.as_str());
 
-        let field_type = FieldType::from(DTOFieldType::new(array_of, false));
+        let field_type = FieldType::from(FieldDescription::new(array_of, false));
 
         match field_type {
             FieldType::ArrayOf(array_value) => {
@@ -138,7 +149,7 @@ mod tests {
 
     #[test]
     fn success_optional() {
-        let input = DTOFieldType::new(String::from("String"), true);
+        let input = FieldDescription::new(String::from("String"), true);
         let field_type = FieldType::from(input);
 
         match field_type {
@@ -152,7 +163,7 @@ mod tests {
 
     #[test]
     fn success_optional_of_array() {
-        let input = DTOFieldType::new(String::from("Array of String"), true);
+        let input = FieldDescription::new(String::from("Array of String"), true);
         let field_type = FieldType::from(input);
 
         match field_type {
@@ -165,5 +176,47 @@ mod tests {
             },
             _ => panic!("Value not parsed to Optional!")
         }
+    }
+
+    #[test]
+    fn success_get_dto_name_integer() {
+        let field_type = FieldType::Integer;
+        assert_eq!(None, field_type.get_dto_name())
+    }
+
+    #[test]
+    fn success_get_dto_name_string() {
+        let field_type = FieldType::String;
+        assert_eq!(None, field_type.get_dto_name())
+    }
+
+    #[test]
+    fn success_get_dto_name_boolean() {
+        let field_type = FieldType::Boolean;
+        assert_eq!(None, field_type.get_dto_name())
+    }
+
+    #[test]
+    fn success_get_dto_name_some_dto() {
+        let dto_name = String::from("Update");
+        let field_type = FieldType::DTO(dto_name.clone());
+
+        assert_eq!(Some(dto_name), field_type.get_dto_name())
+    }
+
+    #[test]
+    fn success_get_dto_name_optional_dto() {
+        let dto_name = String::from("Update");
+        let field_type = FieldType::Optional(Box::new(FieldType::DTO(dto_name.clone())));
+
+        assert_eq!(Some(dto_name), field_type.get_dto_name())
+    }
+
+    #[test]
+    fn success_get_dto_name_array_dto() {
+        let dto_name = String::from("Update");
+        let field_type = FieldType::ArrayOf(Box::new(FieldType::DTO(dto_name.clone())));
+
+        assert_eq!(Some(dto_name), field_type.get_dto_name())
     }
 }
