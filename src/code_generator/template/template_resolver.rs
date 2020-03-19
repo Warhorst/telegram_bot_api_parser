@@ -1,26 +1,14 @@
-use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::fs::{File, read_to_string};
-
-use handlebars::{Handlebars, TemplateError};
+use handlebars::Handlebars;
 use serde::Serialize;
 
 use crate::code_generator::target_files_map::TargetFilesMap;
 use crate::code_generator::template::objects::template_bot_dto::TemplateBotDTO;
-use crate::code_generator::template::template_file::TemplateFile;
-use crate::raw_api::bot_dto::BotDTO;
-use crate::raw_api::dto_field::DTOField;
-use crate::raw_api::field_type::FieldType;
-use crate::util::to_snake_case;
+use crate::code_generator::template::template::Template;
 use crate::code_generator::template::template_code_generation_error::TemplateCodeGenerationError;
-
-cfg_if! {
-    if #[cfg(test)] {
-        use crate::code_generator::template::template::MockTemplate as Template;
-    } else {
-        use crate::code_generator::template::template::Template;
-    }
-}
+use crate::code_generator::template::template_file::TemplateFile;
+use crate::code_generator::template::validation::validator::{DefaultValidator, Validator};
+use crate::raw_api::bot_dto::BotDTO;
+use crate::raw_api::field_type::FieldType;
 
 /// Resolves templates provided by the templates.json.
 pub struct TemplateResolver<'a> {
@@ -38,7 +26,9 @@ impl<'a> TemplateResolver<'a> {
     /// Creates a new template-resolver from a given template.
     /// Types of integer, string and boolean are not expected to contain any templates.
     /// Anything else is registered in a handlebars template registry.
-    pub fn new(template: &self::Template) -> Result<Self, TemplateCodeGenerationError> {
+    pub fn new(template: &dyn Template) -> Result<Self, TemplateCodeGenerationError> {
+        DefaultValidator::new().validate_template(template)?;
+
         let mut registry = Handlebars::new();
 
         registry.register_template_string(TemplateResolver::ARRAY_TEMPLATE, template.get_array_type())?;
@@ -62,9 +52,9 @@ impl<'a> TemplateResolver<'a> {
     /// Resolves the template of the given file with a Vec of all DTOs.
     pub fn resolve_for_each_dto(&self, template_file: &TemplateFile, dtos: &Vec<BotDTO>) -> Result<TargetFilesMap, TemplateCodeGenerationError> {
         let mut result = TargetFilesMap::new();
-        let mut template_dtos =  Vec::new();
+        let mut template_dtos = Vec::new();
 
-        for dto in  dtos.iter() {
+        for dto in dtos.iter() {
             template_dtos.push(TemplateBotDTO::new(dto, &self)?)
         }
 
@@ -126,12 +116,12 @@ struct SingleValueHolder {
     pub value: String
 }
 
+/// TODO: Test Constructor, resolve_each, resolve_single
 #[cfg(test)]
 mod tests {
+    use crate::code_generator::template::template::MockTemplate;
     use crate::code_generator::template::template_resolver::TemplateResolver;
     use crate::raw_api::field_type::FieldType;
-
-    use super::Template;
 
     #[test]
     fn success_get_field_type() {
@@ -145,9 +135,7 @@ mod tests {
             (resolver.get_field_type_string(&FieldType::Optional(Box::new(FieldType::ArrayOf(Box::new(FieldType::DTO(String::from("Update"))))))).unwrap(), String::from("Option<Vec<Update>>"))
         ];
 
-        for (input, expected) in input_expected.into_iter() {
-            assert_eq!(input, expected)
-        }
+        input_expected.into_iter().for_each(|(input, expected)| assert_eq!(input, expected));
     }
 
     #[test]
@@ -159,12 +147,13 @@ mod tests {
     }
 
     fn create_resolver() -> TemplateResolver<'static> {
-        let mut template_mock = Template::default();
+        let mut template_mock = MockTemplate::new();
         template_mock.expect_get_integer_type().return_const(String::from("u64"));
         template_mock.expect_get_string_type().return_const(String::from("String"));
         template_mock.expect_get_boolean_type().return_const(String::from("bool"));
         template_mock.expect_get_array_type().return_const(String::from("Vec<{{{value}}}>"));
         template_mock.expect_get_optional_type().return_const(String::from("Option<{{{value}}}>"));
+        template_mock.expect_get_template_files().return_const(Vec::new());
 
         TemplateResolver::new(&template_mock).unwrap()
     }

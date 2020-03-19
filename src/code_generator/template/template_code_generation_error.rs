@@ -1,15 +1,15 @@
-use serde::export::Formatter;
-use serde::export::fmt::Error;
 use core::fmt;
 use crate::code_generator::target_files_map::SameFilenameError;
 use crate::code_generator::template::resolve_strategy::NoValidResolveStrategyError;
 use handlebars::{TemplateError, TemplateFileError, RenderError};
+use crate::code_generator::template::validation::validator::ValidationError;
 
 #[derive(Debug)]
 pub enum TemplateCodeGenerationError {
     NoValidResolveStrategyError(NoValidResolveStrategyError),
     IoError(std::io::Error),
     SameFilenameError(SameFilenameError),
+    ValidationError(ValidationError),
     HandlebarsTemplateError(TemplateError),
     HandlebarsTemplateFileError(TemplateFileError),
     HandlebarsRenderError(RenderError)
@@ -23,6 +23,7 @@ impl std::fmt::Display for TemplateCodeGenerationError {
             TemplateCodeGenerationError::NoValidResolveStrategyError(e) => e.fmt(f),
             TemplateCodeGenerationError::IoError(e) => e.fmt(f),
             TemplateCodeGenerationError::SameFilenameError(e) => e.fmt(f),
+            TemplateCodeGenerationError::ValidationError(e) => e.fmt(f),
             TemplateCodeGenerationError::HandlebarsTemplateError(e) => e.fmt(f),
             TemplateCodeGenerationError::HandlebarsTemplateFileError(e) => std::fmt::Display::fmt(&e, f),
             TemplateCodeGenerationError::HandlebarsRenderError(e) => e.fmt(f)
@@ -45,6 +46,12 @@ impl From<std::io::Error> for TemplateCodeGenerationError {
 impl From<SameFilenameError> for TemplateCodeGenerationError {
     fn from(e: SameFilenameError) -> Self {
         TemplateCodeGenerationError::SameFilenameError(e)
+    }
+}
+
+impl From<ValidationError> for TemplateCodeGenerationError {
+    fn from(e: ValidationError) -> Self {
+        TemplateCodeGenerationError::ValidationError(e)
     }
 }
 

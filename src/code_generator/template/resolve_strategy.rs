@@ -1,5 +1,5 @@
 use std::convert::TryFrom;
-use std::fmt::{Formatter, Error};
+use std::fmt::Formatter;
 use core::fmt;
 use crate::code_generator::template::resolve_strategy::ResolveStrategy::{ForAllDTOs, ForEachDTO};
 

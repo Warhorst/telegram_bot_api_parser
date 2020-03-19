@@ -55,7 +55,7 @@ impl From<FieldDescription> for FieldType {
             FieldType::STRING => FieldType::String,
             FieldType::BOOLEAN => FieldType::Boolean,
             _ => {
-                let mut trimmed = FieldType::trim_whitespace(&value);
+                let trimmed = FieldType::trim_whitespace(&value);
 
                 if trimmed.starts_with(FieldType::ARRAY_OF){
                     let result = String::from(&trimmed.as_str()[FieldType::ARRAY_OF.len()..trimmed.len()]);

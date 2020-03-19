@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::collections::hash_map::{Iter, IntoIter};
 use crate::code_generator::target_files_map::SameFilenameError::{Single, Multiple};
 use serde::export::Formatter;
-use serde::export::fmt::Error;
 use core::fmt;
 
 /// A map of filenames and their content. It is the result of a code generation.
@@ -92,8 +91,8 @@ mod tests {
         let mut map = create_test_map();
 
         let mut other = TargetFilesMap::new();
-        other.insert(String::from("oof"), String::from("oof_value"));
-        other.insert(String::from("rab"), String::from("rab_value"));
+        other.insert(String::from("oof"), String::from("oof_value")).unwrap();
+        other.insert(String::from("rab"), String::from("rab_value")).unwrap();
 
         map.insert_all(other).unwrap()
     }
@@ -115,8 +114,8 @@ mod tests {
         let existing_key_two = String::from("bar");
 
         let mut other = TargetFilesMap::new();
-        other.insert(existing_key_one.clone(), String::from("value"));
-        other.insert(existing_key_two.clone(), String::from("value"));
+        other.insert(existing_key_one.clone(), String::from("value")).unwrap();
+        other.insert(existing_key_two.clone(), String::from("value")).unwrap();
 
         let insert_result = map.insert_all(other);
 
@@ -126,9 +125,9 @@ mod tests {
     /// Create a TargetFilesMap with keys foo, bar, baz
     fn create_test_map() -> TargetFilesMap {
         let mut  result = TargetFilesMap::new();
-        result.insert(String::from("foo"), String::from("foo_value"));
-        result.insert(String::from("bar"), String::from("bar_value"));
-        result.insert(String::from("baz"), String::from("baz_value"));
+        result.insert(String::from("foo"), String::from("foo_value")).unwrap();
+        result.insert(String::from("bar"), String::from("bar_value")).unwrap();
+        result.insert(String::from("baz"), String::from("baz_value")).unwrap();
 
         result
     }

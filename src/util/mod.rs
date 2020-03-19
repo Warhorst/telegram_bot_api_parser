@@ -1,3 +1,5 @@
+use regex::Regex;
+
 /// Returns a snake_case equivalent of the given String
 ///
 /// All uppercase-chars are changed to lowercase. If the changed char was not the first char (index 0),
@@ -20,9 +22,16 @@ pub fn to_snake_case(input: &String) -> String {
     result
 }
 
+    /// Checks whether the given String is a template.
+    /// It is assumed to be a template if it contains a string surrounded by double braces (Hex 7B and 7D).
+    pub fn is_template(input: &String) -> bool {
+        let regex = Regex::new(r"^.*\x7b\x7b.*\x7d\x7d.*$").unwrap();
+        regex.is_match(input.as_str())
+    }
+
 #[cfg(test)]
 pub mod tests {
-    use crate::util::to_snake_case;
+    use crate::util::{to_snake_case, is_template};
 
     #[test]
     fn success_to_snake_case_single_noun() {
@@ -36,5 +45,20 @@ pub mod tests {
         let input = String::from("UserUpdateMessage");
 
         assert_eq!(to_snake_case(&input), String::from("user_update_message"))
+    }
+
+    #[test]
+    fn success_is_template() {
+        let input_expected = vec![
+            (String::from("Option<{{value}}>"), true),
+            (String::from("Vec<{{value}}>"), true),
+            (String::from("Option<{{{value}}}>"), true),
+            (String::from("Vec<{{{value}}}>"), true),
+            (String::from("{{value}}"), true),
+            (String::from("Update"), false),
+            (String::from(""), false)
+        ];
+
+        input_expected.iter().for_each(|(input, expected)| assert_eq!(*expected, is_template(&input)));
     }
 }
