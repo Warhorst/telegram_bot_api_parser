@@ -3,12 +3,13 @@ use serde::Serialize;
 
 use crate::code_generator::target_files_map::TargetFilesMap;
 use crate::code_generator::template::objects::template_bot_dto::TemplateBotDTO;
-use crate::code_generator::template::template::Template;
 use crate::code_generator::template::template_code_generation_error::TemplateCodeGenerationError;
 use crate::code_generator::template::template_file::TemplateFile;
-use crate::code_generator::template::validation::validator::{DefaultValidator, Validator};
+use crate::code_generator::template::validation::validator::Validator;
 use crate::raw_api::bot_dto::BotDTO;
 use crate::raw_api::field_type::FieldType;
+
+mockuse!(crate::code_generator::template::template, Template, MockTemplate);
 
 /// Resolves templates provided by the templates.json.
 pub struct TemplateResolver<'a> {
@@ -26,8 +27,8 @@ impl<'a> TemplateResolver<'a> {
     /// Creates a new template-resolver from a given template.
     /// Types of integer, string and boolean are not expected to contain any templates.
     /// Anything else is registered in a handlebars template registry.
-    pub fn new(template: &dyn Template) -> Result<Self, TemplateCodeGenerationError> {
-        DefaultValidator::new().validate_template(template)?;
+    pub fn new(template: &Template) -> Result<Self, TemplateCodeGenerationError> {
+        Validator::new().validate_template(template)?;
 
         let mut registry = Handlebars::new();
 
@@ -119,9 +120,10 @@ struct SingleValueHolder {
 /// TODO: Test Constructor, resolve_each, resolve_single
 #[cfg(test)]
 mod tests {
-    use crate::code_generator::template::template::MockTemplate;
     use crate::code_generator::template::template_resolver::TemplateResolver;
     use crate::raw_api::field_type::FieldType;
+
+    use super::Template;
 
     #[test]
     fn success_get_field_type() {
@@ -147,7 +149,7 @@ mod tests {
     }
 
     fn create_resolver() -> TemplateResolver<'static> {
-        let mut template_mock = MockTemplate::new();
+        let mut template_mock = Template::new();
         template_mock.expect_get_integer_type().return_const(String::from("u64"));
         template_mock.expect_get_string_type().return_const(String::from("String"));
         template_mock.expect_get_boolean_type().return_const(String::from("bool"));

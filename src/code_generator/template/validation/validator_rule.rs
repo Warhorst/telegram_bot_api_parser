@@ -1,13 +1,15 @@
 use std::fmt;
 
 use serde::export::Formatter;
+use mockall::automock;
+use std::fmt::Debug;
 
-use crate::code_generator::template::template::Template;
+mockuse!(crate::code_generator::template::template, Template, MockTemplate);
 
 pub type Result = std::result::Result<(), ValidatorRuleError>;
 
-pub trait ValidatorRule {
-    fn validate(&self, template: &dyn Template) -> Result;
+pub trait ValidatorRule: Debug + PartialEq {
+    fn validate(&self, template: &Template) -> Result;
 }
 
 #[derive(Debug, Eq, PartialEq)]

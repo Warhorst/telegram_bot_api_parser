@@ -3,18 +3,19 @@ use std::convert::TryFrom;
 use crate::code_generator::code_generator::CodeGenerator;
 use crate::code_generator::target_files_map::TargetFilesMap;
 use crate::code_generator::template::resolve_strategy::ResolveStrategy;
-use crate::code_generator::template::template::Template;
 use crate::code_generator::template::template_code_generation_error::TemplateCodeGenerationError;
 use crate::code_generator::template::template_resolver::TemplateResolver;
 use crate::raw_api::telegram_bot_api_raw::TelegramBotApiRaw;
 
+mockuse!(crate::code_generator::template::template, Template, MockTemplate);
+
 /// Generates code fom a given JSON-template.
 pub struct TemplateCodeGenerator {
-    template: Box<dyn Template>
+    template: Box<Template>
 }
 
 impl TemplateCodeGenerator {
-    pub fn new(template: Box<dyn Template>) -> Self {
+    pub fn new(template: Box<Template>) -> Self {
         TemplateCodeGenerator { template }
     }
 }

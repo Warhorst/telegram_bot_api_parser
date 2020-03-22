@@ -22,12 +22,25 @@ pub fn to_snake_case(input: &String) -> String {
     result
 }
 
-    /// Checks whether the given String is a template.
-    /// It is assumed to be a template if it contains a string surrounded by double braces (Hex 7B and 7D).
-    pub fn is_template(input: &String) -> bool {
-        let regex = Regex::new(r"^.*\x7b\x7b.*\x7d\x7d.*$").unwrap();
-        regex.is_match(input.as_str())
+/// Checks whether the given String is a template.
+/// It is assumed to be a template if it contains a string surrounded by double braces (Hex 7B and 7D).
+pub fn is_template(input: &String) -> bool {
+    let regex = Regex::new(r"^.*\x7b\x7b.*\x7d\x7d.*$").unwrap();
+    regex.is_match(input.as_str())
+}
+
+/// Macro to create a correct import for either a real or a mock object, based on configuration.
+macro_rules! mockuse {
+    ($base:path, $real_object:tt, $mock_object:tt) => {
+        cfg_if! {
+            if #[cfg(test)] {
+                 use $base::{$mock_object as $real_object};
+            } else {
+                use $base::{$real_object};
+            }
+        }
     }
+}
 
 #[cfg(test)]
 pub mod tests {
