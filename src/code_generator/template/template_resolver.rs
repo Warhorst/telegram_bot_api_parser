@@ -5,7 +5,6 @@ use crate::code_generator::target_files_map::TargetFilesMap;
 use crate::code_generator::template::objects::template_bot_dto::TemplateBotDTO;
 use crate::code_generator::template::template_code_generation_error::TemplateCodeGenerationError;
 use crate::code_generator::template::template_file::TemplateFile;
-use crate::code_generator::template::validation::validator::Validator;
 use crate::raw_api::bot_dto::BotDTO;
 use crate::raw_api::field_type::FieldType;
 
@@ -28,8 +27,6 @@ impl<'a> TemplateResolver<'a> {
     /// Types of integer, string and boolean are not expected to contain any templates.
     /// Anything else is registered in a handlebars template registry.
     pub fn new(template: &Template) -> Result<Self, TemplateCodeGenerationError> {
-        Validator::new().validate_template(template)?;
-
         let mut registry = Handlebars::new();
 
         registry.register_template_string(TemplateResolver::ARRAY_TEMPLATE, template.get_array_type())?;

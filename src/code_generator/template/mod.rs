@@ -5,4 +5,3 @@ pub mod template_file;
 pub mod template_resolver;
 pub mod resolve_strategy;
 pub mod objects;
-pub mod validation;

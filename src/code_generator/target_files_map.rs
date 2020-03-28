@@ -119,7 +119,7 @@ mod tests {
 
         let insert_result = map.insert_all(other);
 
-        assert_eq!(insert_result, Err(SameFilenameError::Multiple(vec![existing_key_two, existing_key_one])))
+        assert_eq!(insert_result, Err(SameFilenameError::Multiple(vec![existing_key_one, existing_key_two])))
     }
 
     /// Create a TargetFilesMap with keys foo, bar, baz
