@@ -1,6 +1,7 @@
 use crate::raw_api::field_type::FieldType;
 
 /// Struct of a DTO with name and type
+#[derive(Eq, PartialEq, Debug)]
 pub struct DTOField {
     name: String,
     field_type: FieldType,
