@@ -4,7 +4,7 @@ use crate::code_generator::template::objects::template_dto_field::TemplateDTOFie
 use crate::code_generator::template::template_resolver::TemplateResolver;
 use crate::raw_api::bot_dto::BotDTO;
 use crate::util::to_snake_case;
-use crate::code_generator::template::template_code_generation_error::TemplateCodeGenerationError;
+use crate::code_generator::template::template_code_generator::TemplateCodeGenerationError;
 
 #[derive(Serialize)]
 pub struct TemplateBotDTO {

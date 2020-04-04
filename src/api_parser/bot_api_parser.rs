@@ -174,7 +174,6 @@ mod tests {
     use select::predicate::Name;
     use crate::api_parser::bot_api_parser::BotApiParser;
     use crate::raw_api::field_type::FieldType;
-    use crate::api_parser::bot_api_parser::TableContentType::DTO;
 
     const DTO_NAME: &'static str = "FooDTO";
     const FIELD_NAME: &'static str = "foo";

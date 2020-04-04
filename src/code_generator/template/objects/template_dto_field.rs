@@ -3,7 +3,7 @@ use serde::Serialize;
 use crate::code_generator::template::template_resolver::TemplateResolver;
 use crate::raw_api::dto_field::DTOField;
 use crate::util::to_snake_case;
-use crate::code_generator::template::template_code_generation_error::TemplateCodeGenerationError;
+use crate::code_generator::template::template_code_generator::TemplateCodeGenerationError;
 
 /// Holds all values to resolve a DTOField in a template.
 /// It contains:

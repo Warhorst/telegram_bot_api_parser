@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use crate::code_generator::target_files::TargetFiles;
 use crate::code_generator::template::objects::template_bot_dto::TemplateBotDTO;
-use crate::code_generator::template::template_code_generation_error::TemplateCodeGenerationError;
+use crate::code_generator::template::template_code_generator::TemplateCodeGenerationError;
 use crate::code_generator::template::template_file::TemplateFile;
 use crate::raw_api::bot_dto::BotDTO;
 use crate::raw_api::field_type::FieldType;
