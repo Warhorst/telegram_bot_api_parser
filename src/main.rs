@@ -2,6 +2,7 @@ use select::document::Document;
 use select::predicate::{Name, Predicate};
 use std::fs::File;
 use crate::api_parser::bot_api_parser::BotApiParser;
+use crate::code_generator::template::template_code_generator::TemplateCodeGenerator;
 
 #[macro_use]
 extern crate cfg_if;
@@ -13,9 +14,6 @@ pub mod api_parser;
 pub mod code_generator;
 
 fn main() {
-    let real_document = Document::from_read(File::open("html/api.html").unwrap()).unwrap();
-
-    real_document
-        .find(Name("h4").or(Name("table")))
-        .for_each(|node| println!("{:?}", node));
+    let parser = BotApiParser{};
+    let raw_api = parser.parse(File::open("html/api.html").unwrap()).unwrap();
 }

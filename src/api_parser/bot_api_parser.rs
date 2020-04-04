@@ -18,8 +18,7 @@ use crate::raw_api::dto_field::DTOField;
 /// Method tables have the header Parameter/Type/Required/Description
 /// Before every table, a single h4 with the name of the DTO/method is located.
 /// Between the table and the h4 may be other content like descriptions.
-/// h4s aren't exclusively used to introduce DTOs/methods.
-/// The last h4 belongs to a table.
+/// h4s aren't exclusively used to introduce DTOs/methods..
 pub struct BotApiParser {}
 
 type ParseResult = Result<TelegramBotApiRaw, ApiParseError>;

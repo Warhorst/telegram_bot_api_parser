@@ -1,5 +1,5 @@
 use core::fmt;
-use crate::code_generator::target_files_map::SameFilenameError;
+use crate::code_generator::target_files::SameFilenameError;
 use crate::code_generator::template::resolve_strategy::NoValidResolveStrategyError;
 use handlebars::{TemplateError, TemplateFileError, RenderError};
 

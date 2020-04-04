@@ -1,7 +1,7 @@
 use handlebars::Handlebars;
 use serde::Serialize;
 
-use crate::code_generator::target_files_map::TargetFilesMap;
+use crate::code_generator::target_files::TargetFiles;
 use crate::code_generator::template::objects::template_bot_dto::TemplateBotDTO;
 use crate::code_generator::template::template_code_generation_error::TemplateCodeGenerationError;
 use crate::code_generator::template::template_file::TemplateFile;
@@ -48,8 +48,8 @@ impl<'a> TemplateResolver<'a> {
     }
 
     /// Resolves the template of the given file with a Vec of all DTOs.
-    pub fn resolve_for_each_dto(&self, template_file: &TemplateFile, dtos: &Vec<BotDTO>) -> Result<TargetFilesMap, TemplateCodeGenerationError> {
-        let mut result = TargetFilesMap::new();
+    pub fn resolve_for_each_dto(&self, template_file: &TemplateFile, dtos: &Vec<BotDTO>) -> Result<TargetFiles, TemplateCodeGenerationError> {
+        let mut result = TargetFiles::new();
         let mut template_dtos = Vec::new();
 
         for dto in dtos.iter() {
@@ -64,8 +64,8 @@ impl<'a> TemplateResolver<'a> {
     }
 
     /// Resolves the template of the given file with a single DTO.
-    pub fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &BotDTO) -> Result<TargetFilesMap, TemplateCodeGenerationError> {
-        let mut result = TargetFilesMap::new();
+    pub fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &BotDTO) -> Result<TargetFiles, TemplateCodeGenerationError> {
+        let mut result = TargetFiles::new();
         let template_dto = TemplateBotDTO::new(dto, self)?;
 
         let filename = self.registry.render(TemplateResolver::get_file_name_template_name(template_file.get_template_path()).as_str(), &template_dto)?;
