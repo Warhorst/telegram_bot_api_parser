@@ -19,3 +19,5 @@ Cargo.lock
 
 #intellij
 /.idea
+
+/generated

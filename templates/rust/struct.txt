@@ -1,16 +1,12 @@
-{{#each dto.fields}}
-use super::{{this.type_snake_case}}::{{this.type}};\n
-{{/each}}
+{{#each fields as |field|}}{{#if field.dto_type}}use super::{{field.dto_type_snake_case}}::{{field.dto_type}};{{/if}}{{/each}}
 
 #[derive()]
-pub struct {{dto.name}} {
-    {{#each dto.fields}}
-    {{this.name}}: {{this.type}},\n
+pub struct {{name}} {
+    {{#each fields as |field|}}{{field.name}}: {{{field.field_type}}},
     {{/each}}
 }
 
-impl {{dto.name}} {
-    {{#each dto.fields}}
-    pub fn get_{{this.name}}(&self) -> &{{this.type}} { &self.{{this.name}} }\n\n
+impl {{name}} {
+    {{#each fields as |field|}}pub fn get_{{field.name}}(&self) -> &{{{field.field_type}}} { &self.{{field.name}} }
     {{/each}}
 }

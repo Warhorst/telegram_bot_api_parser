@@ -19,7 +19,7 @@ use crate::raw_api::dto_field::DTOField;
 /// Before every table, a single h4 with the name of the DTO/method is located.
 /// Between the table and the h4 may be other content like descriptions.
 /// h4s aren't exclusively used to introduce DTOs/methods..
-pub struct BotApiParser {}
+pub struct BotApiParser;
 
 type ParseResult = Result<TelegramBotApiRaw, ApiParseError>;
 
@@ -31,10 +31,11 @@ impl BotApiParser {
     const TABLE_ROW: &'static str = "tr";
     const TABLE_DATA: &'static str = "td";
     const EMPHASIS: &'static str = "em";
+    const ARRAY_OF: &'static str = "Array of ";
     const DTO_TABLE_COLUMNS: usize = 3;
     const METHOD_TABLE_COLUMNS: usize = 4;
 
-    /// Parses a given Read(the HTML) to a raw api.
+    /// Parses a given Read (the HTML) to a raw api.
     /// This is implemented by iterating over every node in the HTML. If a h4 is found, followed by a table,
     /// the text of the h4 is converted to a DTOs name and the table content to its fields.
     pub fn parse<R: std::io::Read>(&self, api_html: R) -> ParseResult {
@@ -108,12 +109,29 @@ impl BotApiParser {
 
     /// Returns the text from the first Text-node in the given node.
     /// For example calling this method on <foo><bar>Text</bar></foo> returns "Text".
+    ///
+    /// A special case is a array as type. The Text is split by an anchor node.
+    /// To get the full text "Array of <type>", the second found text node has to be
+    ///included.
     fn get_node_text(&self, node: &Node) -> Option<String> {
         let text_nodes: Vec<Node> = node.find(Text).collect();
 
         match text_nodes.get(0) {
             None => None,
-            Some(node) => Some(node.text())
+
+            Some(node) => match node.text().as_str() {
+                Self::ARRAY_OF => match text_nodes.get(1) {
+                    Some(array_text_node) => {
+                        let mut array_type = String::from(node.text());
+                        array_type.push_str(array_text_node.text().as_str());
+                        Some(array_type)
+                    },
+
+                    None => None
+                },
+
+                _ => Some(node.text())
+            }
         }
     }
 

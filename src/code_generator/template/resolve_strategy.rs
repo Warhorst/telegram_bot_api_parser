@@ -14,7 +14,7 @@ impl TryFrom<&String> for ResolveStrategy {
 
     fn try_from(value: &String) -> Result<Self, Self::Error> {
         match value.as_str() {
-            "FOR_All_DTOS" => Ok(ForAllDTOs),
+            "FOR_ALL_DTOS" => Ok(ForAllDTOs),
             "FOR_EACH_DTO" => Ok(ForEachDTO),
             _ => Err(NoValidResolveStrategyError { value: value.clone() })
         }

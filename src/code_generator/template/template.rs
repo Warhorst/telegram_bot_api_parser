@@ -1,7 +1,9 @@
 use crate::code_generator::template::template_file::TemplateFile;
+use serde::Deserialize;
 use mockall::automock;
 
 /// A template that is extracted from the templates.json.
+#[derive(Deserialize, Debug)]
 pub struct Template {
     integer_type: String,
     string_type: String,

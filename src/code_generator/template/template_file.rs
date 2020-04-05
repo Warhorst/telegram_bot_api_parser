@@ -1,4 +1,7 @@
+use serde::Deserialize;
+
 /// Contains the data of a template-file and how it should be transformed into generated code
+#[derive(Deserialize, Debug)]
 pub struct TemplateFile {
     template_path: String,
     target_path: String,

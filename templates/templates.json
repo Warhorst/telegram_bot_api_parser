@@ -6,14 +6,14 @@
   "optional_type": "Option<{{{value}}}>",
   "template_files": [
     {
-      "template_path": "rust/struct.txt",
-      "target_path": "{{dto_name_snake_case}}.rs",
-      "resolve_strategy": "EACH_DTO"
+      "template_path": "templates/rust/struct.txt",
+      "target_path": "{{name_snake_case}}.rs",
+      "resolve_strategy": "FOR_EACH_DTO"
     },
     {
-      "template_path": "rust/mod.txt",
+      "template_path": "templates/rust/mod.txt",
       "target_path": "mod.rs",
-      "resolve_strategy": "ALL_DTOS"
+      "resolve_strategy": "FOR_ALL_DTOS"
     }
   ]
 }
