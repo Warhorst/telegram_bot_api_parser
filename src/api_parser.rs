@@ -1,13 +1,13 @@
-use crate::raw_api::telegram_bot_api_raw::TelegramBotApiRaw;
+use crate::raw_api::RawApi;
 use select::document::Document;
 use select::predicate::{Name, Predicate, Text};
 use select::node::Node;
-use crate::api_parser::bot_api_parser::TableContentType::{DTO, Method};
-use crate::raw_api::bot_dto::BotDTO;
+use crate::api_parser::TableContentType::{DTO, Method};
+use crate::raw_api::dto::Dto;
 use serde::export::Formatter;
 use std::fmt;
-use crate::api_parser::bot_api_parser::ApiParseError::{DocumentError, ExtractDTOError, NoValidTableError, TableWithoutNameError};
-use crate::raw_api::dto_field::DTOField;
+use crate::api_parser::ApiParseError::{DocumentError, ExtractDTOError, NoValidTableError, TableWithoutNameError};
+use crate::raw_api::dto_field::DtoField;
 
 /// Extracts the raw API from the HTML.
 /// The current implementation assumes the following HTML-Scheme:
@@ -19,11 +19,11 @@ use crate::raw_api::dto_field::DTOField;
 /// Before every table, a single h4 with the name of the DTO/method is located.
 /// Between the table and the h4 may be other content like descriptions.
 /// h4s aren't exclusively used to introduce DTOs/methods..
-pub struct BotApiParser;
+pub struct ApiParser;
 
-type ParseResult = Result<TelegramBotApiRaw, ApiParseError>;
+type ParseResult = Result<RawApi, ApiParseError>;
 
-impl BotApiParser {
+impl ApiParser {
     const H4: &'static str = "h4";
     const TABLE: &'static str = "table";
     const TABLE_BODY: &'static str = "tbody";
@@ -39,11 +39,11 @@ impl BotApiParser {
     /// This is implemented by iterating over every node in the HTML. If a h4 is found, followed by a table,
     /// the text of the h4 is converted to a DTOs name and the table content to its fields.
     pub fn parse<R: std::io::Read>(&self, api_html: R) -> ParseResult {
-        let mut result = TelegramBotApiRaw::new();
+        let mut result = RawApi::new();
         let document = Document::from_read(api_html)?;
         let mut current_dto_name = None;
 
-        for node in document.find(Name(BotApiParser::H4).or(Name(BotApiParser::TABLE))) {
+        for node in document.find(Name(ApiParser::H4).or(Name(ApiParser::TABLE))) {
             match node.name().unwrap() {
                 Self::H4 => current_dto_name = self.get_node_text(&node),
 
@@ -64,9 +64,9 @@ impl BotApiParser {
         Ok(result)
     }
 
-    /// Extracts a BotDTO from a given HTML node that contains a table.
+    /// Extracts a Dto from a given HTML node that contains a table.
     /// This is implemented by taking the table body and iterating over every row, extracting the data from it.
-    fn extract_dto(&self, dto_name: &String, table_node: &Node) -> Result<BotDTO, ApiParseError> {
+    fn extract_dto(&self, dto_name: &String, table_node: &Node) -> Result<Dto, ApiParseError> {
         let mut fields = Vec::new();
         let table_bodies = table_node.find(Name(Self::TABLE_BODY)).collect::<Vec<Node>>();
 
@@ -76,7 +76,7 @@ impl BotApiParser {
                     fields.push(self.extract_field(&table_row)?)
                 }
 
-                Ok(BotDTO::new(dto_name.clone(), fields))
+                Ok(Dto::new(dto_name.clone(), fields))
             },
 
             None => Err(ExtractDTOError(String::from("A table does not have a table body.")))
@@ -88,7 +88,7 @@ impl BotApiParser {
     /// the description which indicates if the field is optional.
     ///
     /// The description may contain at least one em-element with the word "Optional", indicating the field is optional.
-    fn extract_field(&self, table_row: &Node) -> Result<DTOField, ApiParseError> {
+    fn extract_field(&self, table_row: &Node) -> Result<DtoField, ApiParseError> {
         let data_nodes: Vec<Node> = table_row.find(Name(Self::TABLE_DATA)).collect();
         let field_node_option = data_nodes.get(0);
         let type_node_option = data_nodes.get(1);
@@ -100,7 +100,7 @@ impl BotApiParser {
                 let type_string = self.get_node_text(type_node).unwrap();
                 let optional = description_node.find(Name(Self::EMPHASIS)).count() >= 1;
 
-                Ok(DTOField::new(field_name, type_string, optional))
+                Ok(DtoField::new(field_name, type_string, optional))
             },
 
             _ => return Err(ExtractDTOError(String::from("A table row does not contain the expected three table data elements.")))
@@ -190,7 +190,7 @@ mod tests {
     use select::node::Node;
     use select::document::Document;
     use select::predicate::Name;
-    use crate::api_parser::bot_api_parser::BotApiParser;
+    use crate::api_parser::ApiParser;
     use crate::raw_api::field_type::FieldType;
 
     const DTO_NAME: &'static str = "FooDTO";
@@ -248,7 +248,7 @@ mod tests {
         let rows = document.find(Name("tr")).collect::<Vec<Node>>();
         let table_row = rows.get(1).unwrap();
 
-        let field = BotApiParser{}.extract_field(table_row).unwrap();
+        let field = ApiParser {}.extract_field(table_row).unwrap();
 
         assert_eq!(*field.get_name(), String::from(FIELD_NAME));
         assert_eq!(*field.get_field_type(), create_expected_field_type(false));
@@ -264,7 +264,7 @@ mod tests {
         let rows: Vec<Node> = document.find(Name("tr")).collect();
         let table_row = rows.get(1).unwrap();
 
-        let field = BotApiParser{}.extract_field(table_row).unwrap();
+        let field = ApiParser {}.extract_field(table_row).unwrap();
 
         assert_eq!(*field.get_name(), String::from(FIELD_NAME));
         assert_eq!(*field.get_field_type(), create_expected_field_type(true));
@@ -278,7 +278,7 @@ mod tests {
         let table = tables.get(0).unwrap();
         let dto_name = String::from(DTO_NAME);
 
-        let dto = BotApiParser{}.extract_dto(&dto_name, table).unwrap();
+        let dto = ApiParser {}.extract_dto(&dto_name, table).unwrap();
 
         assert_eq!(*dto.get_name(), dto_name);
         let fields = dto.get_fields();
@@ -289,9 +289,9 @@ mod tests {
     fn success_parse() {
         let bytes = TABLE_ROW.as_bytes();
 
-        let raw_api = BotApiParser{}.parse(bytes).unwrap();
+        let raw_api = ApiParser {}.parse(bytes).unwrap();
 
-        let dtos = raw_api.get_bot_dtos();
+        let dtos = raw_api.get_dtos();
         assert_eq!(dtos.len(), 1);
         let dto = dtos.get(0).unwrap();
         assert_eq!(*dto.get_name(), String::from(DTO_NAME));

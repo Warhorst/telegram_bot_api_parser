@@ -2,14 +2,14 @@ use crate::raw_api::field_type::FieldType;
 
 /// Struct of a DTO with name and type
 #[derive(Eq, PartialEq, Debug)]
-pub struct DTOField {
+pub struct DtoField {
     name: String,
     field_type: FieldType,
 }
 
-impl DTOField {
+impl DtoField {
     pub fn new(name: String, type_value: String, optional: bool) -> Self {
-        DTOField {
+        DtoField {
             name,
             field_type: FieldType::from(FieldDescription { value: type_value, optional })
         }

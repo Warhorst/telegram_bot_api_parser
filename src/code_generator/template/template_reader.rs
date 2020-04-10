@@ -1,4 +1,4 @@
-use crate::code_generator::template::template::Template;
+use crate::code_generator::template::Template;
 use std::fs::File;
 
 pub struct TemplateReader;

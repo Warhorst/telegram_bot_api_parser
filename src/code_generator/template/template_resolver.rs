@@ -2,13 +2,12 @@ use handlebars::Handlebars;
 use serde::Serialize;
 
 use crate::code_generator::target_files::TargetFiles;
-use crate::code_generator::template::objects::template_bot_dto::TemplateBotDTO;
-use crate::code_generator::template::template_code_generator::TemplateCodeGenerationError;
-use crate::code_generator::template::template_file::TemplateFile;
-use crate::raw_api::bot_dto::BotDTO;
+use crate::code_generator::template::objects::TemplateDto;
+use crate::code_generator::template::Template;
+use crate::code_generator::template::TemplateFile;
+use crate::code_generator::template::TemplateCodeGenerationError;
+use crate::raw_api::dto::Dto;
 use crate::raw_api::field_type::FieldType;
-
-mockuse!(crate::code_generator::template::template, Template, MockTemplate);
 
 /// Resolves templates provided by the templates.json.
 pub struct TemplateResolver<'a> {
@@ -29,47 +28,47 @@ impl<'a> TemplateResolver<'a> {
     pub fn new(template: &Template) -> Result<Self, TemplateCodeGenerationError> {
         let mut registry = Handlebars::new();
 
-        registry.register_template_string(TemplateResolver::ARRAY_TEMPLATE, template.get_array_type())?;
-        registry.register_template_string(TemplateResolver::OPTIONAL_TEMPLATE, template.get_optional_type())?;
+        registry.register_template_string(TemplateResolver::ARRAY_TEMPLATE, &template.array_type)?;
+        registry.register_template_string(TemplateResolver::OPTIONAL_TEMPLATE, &template.optional_type)?;
 
-        for template_file in template.get_template_files() {
-            let template_path = template_file.get_template_path();
+        for template_file in &template.template_files {
+            let template_path = &template_file.template_path;
 
-            registry.register_template_string(TemplateResolver::get_file_name_template_name(&template_path).as_str(), template_file.get_target_path())?;
+            registry.register_template_string(TemplateResolver::get_file_name_template_name(&template_path).as_str(), &template_file.target_path)?;
             registry.register_template_file(template_path.as_str(), template_path)?;
         }
 
         Ok(TemplateResolver {
-            integer_type: template.get_integer_type().to_owned(),
-            string_type: template.get_string_type().to_owned(),
-            boolean_type: template.get_boolean_type().to_owned(),
+            integer_type: template.integer_type.to_owned(),
+            string_type: template.string_type.to_owned(),
+            boolean_type: template.boolean_type.to_owned(),
             registry,
         })
     }
 
     /// Resolves the template of the given file with a Vec of all DTOs.
-    pub fn resolve_for_each_dto(&self, template_file: &TemplateFile, dtos: &Vec<BotDTO>) -> Result<TargetFiles, TemplateCodeGenerationError> {
+    pub fn resolve_for_each_dto(&self, template_file: &TemplateFile, dtos: &Vec<Dto>) -> Result<TargetFiles, TemplateCodeGenerationError> {
         let mut result = TargetFiles::new();
         let mut template_dtos = Vec::new();
 
         for dto in dtos.iter() {
-            template_dtos.push(TemplateBotDTO::new(dto, &self)?)
+            template_dtos.push(TemplateDto::new(dto, &self)?)
         }
 
-        let filename = self.registry.render(TemplateResolver::get_file_name_template_name(template_file.get_template_path()).as_str(), &template_dtos)?;
-        let content = self.registry.render(template_file.get_template_path(), &template_dtos)?;
+        let filename = self.registry.render(TemplateResolver::get_file_name_template_name(&template_file.target_path).as_str(), &template_dtos)?;
+        let content = self.registry.render(&template_file.template_path, &template_dtos)?;
 
         result.insert(filename, content)?;
         Ok(result)
     }
 
     /// Resolves the template of the given file with a single DTO.
-    pub fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &BotDTO) -> Result<TargetFiles, TemplateCodeGenerationError> {
+    pub fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &Dto) -> Result<TargetFiles, TemplateCodeGenerationError> {
         let mut result = TargetFiles::new();
-        let template_dto = TemplateBotDTO::new(dto, self)?;
+        let template_dto = TemplateDto::new(dto, self)?;
 
-        let filename = self.registry.render(TemplateResolver::get_file_name_template_name(template_file.get_template_path()).as_str(), &template_dto)?;
-        let content = self.registry.render(template_file.get_template_path(), &template_dto)?;
+        let filename = self.registry.render(TemplateResolver::get_file_name_template_name(&template_file.template_path).as_str(), &template_dto)?;
+        let content = self.registry.render(&template_file.template_path, &template_dto)?;
 
         result.insert(filename, content)?;
         Ok(result)
@@ -146,14 +145,15 @@ mod tests {
     }
 
     fn create_resolver() -> TemplateResolver<'static> {
-        let mut template_mock = Template::new();
-        template_mock.expect_get_integer_type().return_const(String::from("u64"));
-        template_mock.expect_get_string_type().return_const(String::from("String"));
-        template_mock.expect_get_boolean_type().return_const(String::from("bool"));
-        template_mock.expect_get_array_type().return_const(String::from("Vec<{{{value}}}>"));
-        template_mock.expect_get_optional_type().return_const(String::from("Option<{{{value}}}>"));
-        template_mock.expect_get_template_files().return_const(Vec::new());
+        let template = Template {
+            integer_type: String::from("u64"),
+            string_type: String::from("String"),
+            boolean_type: String::from("bool"),
+            array_type: String::from("Vec<{{{value}}}>"),
+            optional_type: String::from("Option<{{{value}}}>"),
+            template_files: Vec::new()
+        };
 
-        TemplateResolver::new(&template_mock).unwrap()
+        TemplateResolver::new(&template).unwrap()
     }
 }

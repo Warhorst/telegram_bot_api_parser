@@ -29,19 +29,6 @@ pub fn is_template(input: &String) -> bool {
     regex.is_match(input.as_str())
 }
 
-/// Macro to create a correct import for either a real or a mock object, based on configuration.
-macro_rules! mockuse {
-    ($base:path, $real_object:tt, $mock_object:tt) => {
-        cfg_if! {
-            if #[cfg(test)] {
-                 use $base::{$mock_object as $real_object};
-            } else {
-                use $base::{$real_object};
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 pub mod tests {
     use crate::util::{to_snake_case, is_template};
