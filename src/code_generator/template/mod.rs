@@ -1,31 +1,29 @@
 use core::fmt;
-use std::convert::TryFrom;
 
 use handlebars::{RenderError, TemplateError, TemplateFileError};
-use serde::Deserialize;
 
 use crate::code_generator::CodeGenerator;
 use crate::code_generator::target_files::SameFilenameError;
 use crate::code_generator::target_files::TargetFiles;
+use crate::code_generator::template::configuration::Configuration;
 use crate::code_generator::template::resolve_strategy::NoValidResolveStrategyError;
-use crate::code_generator::template::resolve_strategy::ResolveStrategy;
 use crate::code_generator::template::template_resolver::TemplateResolver;
 use crate::raw_api::RawApi;
 
-mod template_file;
 mod template_resolver;
 mod resolve_strategy;
 mod objects;
-pub mod template_reader;
+pub mod configuration;
+pub mod configuration_reader;
 
 /// Generates code fom a given JSON-template.
 pub struct TemplateCodeGenerator {
-    template: Template
+    configuration: Configuration
 }
 
 impl TemplateCodeGenerator {
-    pub fn new(template: Template) -> Self {
-        TemplateCodeGenerator { template }
+    pub fn new(template: Configuration) -> Self {
+        TemplateCodeGenerator { configuration: template }
     }
 }
 
@@ -33,44 +31,9 @@ impl CodeGenerator for TemplateCodeGenerator {
     type Error = TemplateCodeGenerationError;
 
     fn generate(&self, api: RawApi) -> Result<TargetFiles, Self::Error> {
-        let mut result = TargetFiles::new();
-        let resolver = TemplateResolver::new(&self.template)?;
-        let dtos = api.get_dtos();
-
-        for template_file in &self.template.template_files {
-            let file_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;
-
-            match file_strategy {
-                ResolveStrategy::ForAllDTOs => result.insert_all(resolver.resolve_for_each_dto(template_file, dtos)?)?,
-                ResolveStrategy::ForEachDTO => {
-                    for dto in dtos {
-                        result.insert_all(resolver.resolve_for_single_dto(template_file, dto)?)?
-                    }
-                }
-            };
-        }
-
-        Ok(result)
+        let resolver = TemplateResolver::new(self.configuration.clone())?;
+        resolver.resolve(api)
     }
-}
-
-/// A template that is extracted from the templates.json.
-#[derive(Deserialize, Debug)]
-pub struct Template {
-    pub integer_type: String,
-    pub string_type: String,
-    pub boolean_type: String,
-    pub array_type: String,
-    pub optional_type: String,
-    pub template_files: Vec<TemplateFile>
-}
-
-/// Contains the data of a template-file and how it should be transformed into generated code
-#[derive(Deserialize, Debug)]
-pub struct TemplateFile {
-    pub template_path: String,
-    pub target_path: String,
-    pub resolve_strategy: String,
 }
 
 #[derive(Debug)]

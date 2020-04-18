@@ -4,6 +4,12 @@
   "boolean_type": "bool",
   "array_type": "Vec<{{{value}}}>",
   "optional_type": "Option<{{{value}}}>",
+  "renames" : [
+    {
+      "from" : "type",
+      "to" : "dto_type"
+    }
+  ],
   "template_files": [
     {
       "template_path": "templates/rust/struct.txt",

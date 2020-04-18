@@ -1,13 +1,15 @@
+use crate::raw_api::dto::Dto;
+
 pub mod dto;
 pub mod dto_field;
 pub mod field_type;
 
-use crate::raw_api::dto::Dto;
+pub type Dtos = Vec<Dto>;
 
 /// Represents a collection of all extracted values from the HTML-API
 #[derive(Debug)]
 pub struct RawApi {
-    dtos: Vec<Dto>
+    dtos: Dtos
 }
 
 impl RawApi {
@@ -22,7 +24,7 @@ impl RawApi {
         self.dtos.push(dto)
     }
 
-    pub fn get_dtos(&self) -> &Vec<Dto> {
+    pub fn get_dtos(&self) -> &Dtos {
         &self.dtos
     }
 }

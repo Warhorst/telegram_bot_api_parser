@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::Serialize;
 
 use crate::code_generator::template::template_resolver::TemplateResolver;
@@ -11,6 +13,7 @@ pub struct TemplateDto {
     name: String,
     name_snake_case: String,
     fields: Vec<TemplateDtoField>,
+    used_dtos: HashSet<UsedDto>,
 }
 
 impl TemplateDto {
@@ -18,15 +21,23 @@ impl TemplateDto {
         let name = dto.get_name().clone();
         let name_snake_case = to_snake_case(&name);
         let mut fields = Vec::new();
+        let mut used_dtos = HashSet::new();
 
         for field in dto.get_fields().iter() {
-            fields.push(TemplateDtoField::new(field, template_resolver)?)
+            fields.push(TemplateDtoField::new(field, template_resolver)?);
+
+            if let Some(dto_name) = field.get_field_type().get_dto_name() {
+                if name != dto_name {
+                    used_dtos.insert(UsedDto::new(dto_name));
+                }
+            }
         }
 
         Ok(TemplateDto {
             name,
             name_snake_case,
             fields,
+            used_dtos,
         })
     }
 }
@@ -41,27 +52,35 @@ impl TemplateDto {
 pub struct TemplateDtoField {
     name: String,
     field_type: String,
-    dto_type: String,
-    dto_type_snake_case: String,
 }
 
 impl TemplateDtoField {
     pub fn new(dto_field: &DtoField, template_resovler: &TemplateResolver) -> Result<Self, TemplateCodeGenerationError> {
-        let name = dto_field.get_name().clone();
+        let name = template_resovler.rename(dto_field.get_name().clone());
         let field_type = dto_field.get_field_type();
         let field_type_string = template_resovler.get_field_type_string(field_type)?;
-        let dto_name = field_type.get_dto_name();
-
-        let (dto_type_snake_case, dto_type) = match dto_name {
-            Some(value) => (to_snake_case(&value), value),
-            None => (String::new(), String::new())
-        };
 
         Ok(TemplateDtoField {
             name,
             field_type: field_type_string,
-            dto_type,
-            dto_type_snake_case,
         })
+    }
+}
+
+/// Represents a Dto that is used by another Dto.
+#[derive(Serialize, Eq, PartialEq, Hash)]
+pub struct UsedDto {
+    name: String,
+    name_snake_case: String,
+}
+
+impl UsedDto {
+    pub fn new(dto_name: String) -> Self {
+        let name_snake_case = to_snake_case(&dto_name);
+
+        UsedDto {
+            name: dto_name,
+            name_snake_case,
+        }
     }
 }

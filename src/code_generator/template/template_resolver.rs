@@ -1,20 +1,20 @@
+use std::convert::TryFrom;
+
 use handlebars::Handlebars;
 use serde::Serialize;
 
 use crate::code_generator::target_files::TargetFiles;
+use crate::code_generator::template::configuration::{Configuration, Rename, TemplateFile};
 use crate::code_generator::template::objects::TemplateDto;
-use crate::code_generator::template::Template;
-use crate::code_generator::template::TemplateFile;
+use crate::code_generator::template::resolve_strategy::ResolveStrategy;
 use crate::code_generator::template::TemplateCodeGenerationError;
-use crate::raw_api::dto::Dto;
+use crate::raw_api::{Dtos, RawApi};
 use crate::raw_api::field_type::FieldType;
 
-/// Resolves templates provided by the templates.json.
+/// Resolves templates provided by the configuration.json.
 pub struct TemplateResolver<'a> {
-    integer_type: String,
-    string_type: String,
-    boolean_type: String,
     registry: Handlebars<'a>,
+    configuration: Configuration,
 }
 
 impl<'a> TemplateResolver<'a> {
@@ -22,53 +22,68 @@ impl<'a> TemplateResolver<'a> {
     const OPTIONAL_TEMPLATE: &'static str = "optional";
     const FILE_NAME_TEMPLATE_NAME_POSTFIX: &'static str = "_name";
 
-    /// Creates a new template-resolver from a given template.
-    /// Types of integer, string and boolean are not expected to contain any templates.
-    /// Anything else is registered in a handlebars template registry.
-    pub fn new(template: &Template) -> Result<Self, TemplateCodeGenerationError> {
+    /// Creates and configures a TemplateResolver with a given Configuration.
+    pub fn new(configuration: Configuration) -> Result<Self, TemplateCodeGenerationError> {
         let mut registry = Handlebars::new();
 
-        registry.register_template_string(TemplateResolver::ARRAY_TEMPLATE, &template.array_type)?;
-        registry.register_template_string(TemplateResolver::OPTIONAL_TEMPLATE, &template.optional_type)?;
+        registry.register_template_string(TemplateResolver::ARRAY_TEMPLATE, &configuration.array_type)?;
+        registry.register_template_string(TemplateResolver::OPTIONAL_TEMPLATE, &configuration.optional_type)?;
 
-        for template_file in &template.template_files {
+        for template_file in &configuration.template_files {
             let template_path = &template_file.template_path;
 
-            registry.register_template_string(TemplateResolver::get_file_name_template_name(&template_path).as_str(), &template_file.target_path)?;
+            registry.register_template_string(Self::get_file_name_template_name(&template_path).as_str(), &template_file.target_path)?;
             registry.register_template_file(template_path.as_str(), template_path)?;
         }
 
         Ok(TemplateResolver {
-            integer_type: template.integer_type.to_owned(),
-            string_type: template.string_type.to_owned(),
-            boolean_type: template.boolean_type.to_owned(),
             registry,
+            configuration,
         })
     }
 
-    /// Resolves the template of the given file with a Vec of all DTOs.
-    pub fn resolve_for_each_dto(&self, template_file: &TemplateFile, dtos: &Vec<Dto>) -> Result<TargetFiles, TemplateCodeGenerationError> {
+    /// Generates code by iterating over every TemplateFile and applying the choosen ResolveStrategy.
+    /// If ForAllDTOs is choosen, the complete list of Dtos is used to resolve the template.
+    /// ForEachDTO in comparision resolves and creates a file for each single Dto.
+    pub fn resolve(&self, api: RawApi) -> Result<TargetFiles, TemplateCodeGenerationError> {
         let mut result = TargetFiles::new();
-        let mut template_dtos = Vec::new();
+        let template_dtos = self.convert_to_template_dtos(api.get_dtos())?;
 
-        for dto in dtos.iter() {
-            template_dtos.push(TemplateDto::new(dto, &self)?)
+        for template_file in self.configuration.template_files.iter() {
+            let resolve_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;
+
+            match resolve_strategy {
+                ResolveStrategy::ForAllDTOs => result.insert_all(self.resolve_with_dtos(template_file, &template_dtos)?)?,
+                ResolveStrategy::ForEachDTO => {
+                    for dto in template_dtos.iter() {
+                        result.insert_all(self.resolve_with_dtos(template_file, dto)?)?
+                    }
+                }
+            };
         }
 
-        let filename = self.registry.render(TemplateResolver::get_file_name_template_name(&template_file.target_path).as_str(), &template_dtos)?;
-        let content = self.registry.render(&template_file.template_path, &template_dtos)?;
-
-        result.insert(filename, content)?;
         Ok(result)
     }
 
-    /// Resolves the template of the given file with a single DTO.
-    pub fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &Dto) -> Result<TargetFiles, TemplateCodeGenerationError> {
-        let mut result = TargetFiles::new();
-        let template_dto = TemplateDto::new(dto, self)?;
+    /// Converts given Dtos to TemplateDtos. These contain more fields to generate the desired code.
+    fn convert_to_template_dtos(&self, dtos: &Dtos) -> Result<Vec<TemplateDto>, TemplateCodeGenerationError> {
+        let mut result = Vec::new();
 
-        let filename = self.registry.render(TemplateResolver::get_file_name_template_name(&template_file.template_path).as_str(), &template_dto)?;
-        let content = self.registry.render(&template_file.template_path, &template_dto)?;
+        for dto in dtos.into_iter() {
+            result.push(TemplateDto::new(dto, &self)?)
+        }
+
+        Ok(result)
+    }
+
+    /// Creates a TargetFiles object with a single entry, created from a given template that was resolved with the given TemplateDtos.
+    /// The given data was either a single TemplateDto or a Vec.
+    /// The given TemplateFile is used to load the correct templates.
+    fn resolve_with_dtos<T: Serialize>(&self, template_file: &TemplateFile, dtos: &T) -> Result<TargetFiles, TemplateCodeGenerationError> {
+        let mut result = TargetFiles::new();
+
+        let filename = self.registry.render(Self::get_file_name_template_name(&template_file.template_path).as_str(), dtos)?;
+        let content = self.registry.render(&template_file.template_path, dtos)?;
 
         result.insert(filename, content)?;
         Ok(result)
@@ -77,12 +92,22 @@ impl<'a> TemplateResolver<'a> {
     /// Returns the full type of a field as String, converted from its FieldType.
     pub fn get_field_type_string(&self, field_type: &FieldType) -> Result<String, TemplateCodeGenerationError> {
         match field_type {
-            FieldType::Integer => Ok(self.integer_type.clone()),
-            FieldType::String => Ok(self.string_type.clone()),
-            FieldType::Boolean => Ok(self.boolean_type.clone()),
+            FieldType::Integer => Ok(self.configuration.integer_type.clone()),
+            FieldType::String => Ok(self.configuration.string_type.clone()),
+            FieldType::Boolean => Ok(self.configuration.boolean_type.clone()),
             FieldType::DTO(dto_name) => Ok(dto_name.clone()),
             FieldType::ArrayOf(array_field_type) => self.get_array_value(self.get_field_type_string(array_field_type)?),
             FieldType::Optional(optional_field_type) => self.get_optional_value(self.get_field_type_string(optional_field_type)?)
+        }
+    }
+
+    pub fn rename(&self, field_name: String) -> String {
+        let renames: Vec<&Rename> = self.configuration.renames.iter().filter(|rename| rename.from == field_name).collect();
+        let rename_option = renames.first();
+
+        match rename_option {
+            Some(rename) => rename.to.clone(),
+            None => field_name
         }
     }
 
@@ -93,22 +118,23 @@ impl<'a> TemplateResolver<'a> {
     /// The filename template will be registered under the name "struct.txt_name".
     fn get_file_name_template_name(file_name: &String) -> String {
         let mut result = String::from(file_name.as_str());
-        result.push_str(TemplateResolver::FILE_NAME_TEMPLATE_NAME_POSTFIX);
-
+        result.push_str(Self::FILE_NAME_TEMPLATE_NAME_POSTFIX);
         result
     }
 
+    /// Returns the given String wrapped in the registered optional template.
     fn get_optional_value(&self, value: String) -> Result<String, TemplateCodeGenerationError> {
         Ok(self.registry.render(TemplateResolver::OPTIONAL_TEMPLATE, &SingleValueHolder { value })?)
     }
 
+    /// Returns the given String wrapped in the registered array template.
     fn get_array_value(&self, value: String) -> Result<String, TemplateCodeGenerationError> {
         Ok(self.registry.render(TemplateResolver::ARRAY_TEMPLATE, &SingleValueHolder { value })?)
     }
 }
 
-#[derive(Serialize)]
 /// Wraps a single String so it can be processed by handlebars.
+#[derive(Serialize)]
 struct SingleValueHolder {
     pub value: String
 }
@@ -119,7 +145,7 @@ mod tests {
     use crate::code_generator::template::template_resolver::TemplateResolver;
     use crate::raw_api::field_type::FieldType;
 
-    use super::Template;
+    use super::Configuration;
 
     #[test]
     fn success_get_field_type() {
@@ -145,15 +171,16 @@ mod tests {
     }
 
     fn create_resolver() -> TemplateResolver<'static> {
-        let template = Template {
+        let template = Configuration {
             integer_type: String::from("u64"),
             string_type: String::from("String"),
             boolean_type: String::from("bool"),
             array_type: String::from("Vec<{{{value}}}>"),
             optional_type: String::from("Option<{{{value}}}>"),
+            renames: Vec::new(),
             template_files: Vec::new()
         };
 
-        TemplateResolver::new(&template).unwrap()
+        TemplateResolver::new(template).unwrap()
     }
 }

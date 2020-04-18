@@ -1,8 +1,9 @@
 use std::fs::File;
+
 use crate::api_parser::ApiParser;
-use crate::code_generator::template::TemplateCodeGenerator;
-use crate::code_generator::template::template_reader::TemplateReader;
 use crate::code_generator::CodeGenerator;
+use crate::code_generator::template::configuration_reader::ConfigurationReader;
+use crate::code_generator::template::TemplateCodeGenerator;
 use crate::code_writer::CodeWriter;
 
 pub mod util;
@@ -12,7 +13,7 @@ pub mod code_generator;
 pub mod code_writer;
 
 fn main() {
-    let reader = TemplateReader;
+    let reader = ConfigurationReader;
     let template = reader.read().unwrap();
 
     let parser = ApiParser;
