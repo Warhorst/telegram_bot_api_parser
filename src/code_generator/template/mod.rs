@@ -1,39 +1,80 @@
 use core::fmt;
+use std::convert::TryFrom;
 
-use handlebars::{RenderError, TemplateError, TemplateFileError};
+use handlebars::{Handlebars, RenderError, TemplateError, TemplateFileError};
+use serde::Serialize;
 
 use crate::code_generator::CodeGenerator;
 use crate::code_generator::target_files::SameFilenameError;
 use crate::code_generator::target_files::TargetFiles;
-use crate::code_generator::template::configuration::Configuration;
-use crate::code_generator::template::resolve_strategy::NoValidResolveStrategyError;
-use crate::code_generator::template::template_resolver::TemplateResolver;
-use crate::raw_api::RawApi;
+use crate::code_generator::template::api::{ResolvedApi, ResolvedDto};
+use crate::code_generator::template::configuration::{Configuration, Rename, TemplateFile};
+use crate::code_generator::template::resolve_strategy::{NoValidResolveStrategyError, ResolveStrategy};
+use crate::code_generator::template::resolver::{HandlebarsResolver, Resolver};
+use crate::raw_api::{Dtos, RawApi};
+use crate::raw_api::field_type::FieldType;
 
-mod template_resolver;
 mod resolve_strategy;
-mod objects;
+mod api;
+pub mod resolver;
 pub mod configuration;
 pub mod configuration_reader;
 
 /// Generates code fom a given JSON-template.
-pub struct TemplateCodeGenerator {
-    configuration: Configuration
+pub struct TemplateCodeGenerator<R: Resolver> {
+    configuration: Configuration,
+    resolver: R
 }
 
-impl TemplateCodeGenerator {
-    pub fn new(template: Configuration) -> Self {
-        TemplateCodeGenerator { configuration: template }
-    }
-}
-
-impl CodeGenerator for TemplateCodeGenerator {
+impl<R: Resolver> CodeGenerator for TemplateCodeGenerator<R> {
     type Error = TemplateCodeGenerationError;
 
     fn generate(&self, api: RawApi) -> Result<TargetFiles, Self::Error> {
-        let resolver = TemplateResolver::new(self.configuration.clone())?;
-        resolver.resolve(api)
+        let mut result = TargetFiles::new();
+        let template_api = ResolvedApi::new(api, &self.resolver).unwrap();
+
+        for template_file in self.configuration.template_files.iter() {
+            let resolve_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;
+
+            match resolve_strategy {
+                ResolveStrategy::ForAllDTOs => result.insert_all(self.resolver.resolve_for_each_dto(template_file, template_api.get_dtos()).unwrap())?,
+                ResolveStrategy::ForEachDTO => {
+                    for dto in template_api.get_dtos() {
+                        result.insert_all(self.resolver.resolve_for_single_dto(template_file, dto).unwrap())?
+                    }
+                }
+            }
+        }
+
+        Ok(result)
     }
+}
+
+impl<R: Resolver> TemplateCodeGenerator<R> {
+
+    pub fn new(configuration: Configuration, resolver: R) -> Result<Self, TemplateCodeGenerationError> {
+        Ok(TemplateCodeGenerator {
+            configuration,
+            resolver
+        })
+    }
+
+    // /// Converts given Dtos to TemplateDtos. These contain more fields to generate the desired code.
+    // fn convert_to_template_dtos(&self, dtos: &Dtos) -> Result<Vec<TemplateDto>, TemplateCodeGenerationError> {
+    //     let mut result = Vec::new();
+    //
+    //     for dto in dtos.into_iter() {
+    //         result.push(TemplateDto::new(dto, &self)?)
+    //     }
+    //
+    //     Ok(result)
+    // }
+}
+
+/// Wraps a single String so it can be processed by handlebars.
+#[derive(Serialize)]
+struct SingleValueHolder {
+    pub value: String
 }
 
 #[derive(Debug)]
@@ -76,23 +117,5 @@ impl From<std::io::Error> for TemplateCodeGenerationError {
 impl From<SameFilenameError> for TemplateCodeGenerationError {
     fn from(e: SameFilenameError) -> Self {
         TemplateCodeGenerationError::SameFilenameError(e)
-    }
-}
-
-impl From<TemplateError> for TemplateCodeGenerationError {
-    fn from(e: TemplateError) -> Self {
-        TemplateCodeGenerationError::HandlebarsTemplateError(e)
-    }
-}
-
-impl From<TemplateFileError> for TemplateCodeGenerationError {
-    fn from(e: TemplateFileError) -> Self {
-        TemplateCodeGenerationError::HandlebarsTemplateFileError(e)
-    }
-}
-
-impl From<RenderError> for TemplateCodeGenerationError {
-    fn from(e: RenderError) -> Self {
-        TemplateCodeGenerationError::HandlebarsRenderError(e)
     }
 }

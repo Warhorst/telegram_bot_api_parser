@@ -13,7 +13,7 @@
   "template_files": [
     {
       "template_path": "templates/rust/struct.txt",
-      "target_path": "{{name_snake_case}}.rs",
+      "target_path": "{{name.snake_case}}.rs",
       "resolve_strategy": "FOR_EACH_DTO"
     },
     {
