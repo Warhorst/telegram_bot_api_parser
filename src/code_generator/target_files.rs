@@ -1,8 +1,10 @@
-use std::collections::HashMap;
-use std::collections::hash_map::{Iter, IntoIter};
-use crate::code_generator::target_files::SameFilenameError::{Single, Multiple};
-use serde::export::Formatter;
 use core::fmt;
+use std::collections::hash_map::{IntoIter, Iter};
+use std::collections::HashMap;
+
+use serde::export::Formatter;
+
+use crate::code_generator::target_files::SameFilenameError::{Multiple, Single};
 
 /// Filenames and their content.
 pub struct TargetFiles {
@@ -18,9 +20,9 @@ impl TargetFiles {
 
     /// Insert a filename and its content to this TargetFiles instance.
     /// If a file with this name already exists, a SameFilenameError is returned.
-    pub fn insert(&mut self, target_filename: String, content: String) -> Result<(), SameFilenameError> {
-        if let Some(_) = self.name_content_map.insert(target_filename.clone(), content) {
-            return Err(SameFilenameError::Single(target_filename))
+    pub fn insert(&mut self, target_file: TargetFile) -> Result<(), SameFilenameError> {
+        if let Some(_) = self.name_content_map.insert(target_file.file_name.clone(), target_file.content) {
+            return Err(SameFilenameError::Single(target_file.file_name))
         }
 
         Ok(())
@@ -55,6 +57,11 @@ impl TargetFiles {
     }
 }
 
+pub struct TargetFile {
+    pub file_name: String,
+    pub content: String
+}
+
 /// Indicates that a pair with an existing key should be inserted into a TargetFiles.
 /// This isn't allowed, because a generated file would be overwritten by another.
 #[derive(Debug, Eq, PartialEq)]
@@ -80,12 +87,12 @@ impl std::fmt::Display for SameFilenameError {
 
 #[cfg(test)]
 mod tests {
-    use crate::code_generator::target_files::{TargetFiles, SameFilenameError};
+    use crate::code_generator::target_files::{SameFilenameError, TargetFile, TargetFiles};
 
     #[test]
     fn success_insert() {
         let mut map = create_test_map();
-        map.insert(String::from("oof"), String::from("oof_value")).unwrap()
+        map.insert(create_target_file("oof", "oof_value")).unwrap()
     }
 
     #[test]
@@ -93,8 +100,8 @@ mod tests {
         let mut map = create_test_map();
 
         let mut other = TargetFiles::new();
-        other.insert(String::from("oof"), String::from("oof_value")).unwrap();
-        other.insert(String::from("rab"), String::from("rab_value")).unwrap();
+        other.insert(create_target_file("oof", "oof_value")).unwrap();
+        other.insert(create_target_file("rab", "rab_value")).unwrap();
 
         map.insert_all(other).unwrap()
     }
@@ -104,7 +111,7 @@ mod tests {
         let mut map = create_test_map();
         let existing_key = String::from("foo");
 
-        let insert_result = map.insert(existing_key.clone(), String::from("value"));
+        let insert_result = map.insert(create_target_file(existing_key.clone().as_str(), "value"));
 
         assert_eq!(insert_result, Err(SameFilenameError::Single(existing_key)))
     }
@@ -116,8 +123,8 @@ mod tests {
         let existing_key_two = String::from("bar");
 
         let mut other = TargetFiles::new();
-        other.insert(existing_key_one.clone(), String::from("value")).unwrap();
-        other.insert(existing_key_two.clone(), String::from("value")).unwrap();
+        other.insert(create_target_file(existing_key_one.as_str(), "value")).unwrap();
+        other.insert(create_target_file(existing_key_two.as_str(), "value")).unwrap();
 
         let insert_result = map.insert_all(other);
 
@@ -127,10 +134,17 @@ mod tests {
     /// Create a TargetFilesMap with keys foo, bar, baz
     fn create_test_map() -> TargetFiles {
         let mut  result = TargetFiles::new();
-        result.insert(String::from("foo"), String::from("foo_value")).unwrap();
-        result.insert(String::from("bar"), String::from("bar_value")).unwrap();
-        result.insert(String::from("baz"), String::from("baz_value")).unwrap();
+        result.insert(create_target_file("oof", "oof_value")).unwrap();
+        result.insert(create_target_file("bar", "bar_value")).unwrap();
+        result.insert(create_target_file("baz", "baz_value")).unwrap();
 
         result
+    }
+
+    fn create_target_file(file_name: &str, content: &str) -> TargetFile {
+        TargetFile {
+            file_name: String::from(file_name),
+            content: String::from(content)
+        }
     }
 }

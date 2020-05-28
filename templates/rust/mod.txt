@@ -1,2 +1,2 @@
-{{#each this as |dto|}}pub mod {{dto.name_snake_case}};
+{{#each this as |dto|}}pub mod {{dto.name.snake_case}};
 {{/each}}

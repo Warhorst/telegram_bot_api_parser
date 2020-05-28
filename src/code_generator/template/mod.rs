@@ -1,24 +1,24 @@
 use core::fmt;
 use std::convert::TryFrom;
 
-use handlebars::{Handlebars, RenderError, TemplateError, TemplateFileError};
+use handlebars::{RenderError, TemplateError, TemplateFileError};
 use serde::Serialize;
 
 use crate::code_generator::CodeGenerator;
 use crate::code_generator::target_files::SameFilenameError;
 use crate::code_generator::target_files::TargetFiles;
-use crate::code_generator::template::api::{ResolvedApi, ResolvedDto};
-use crate::code_generator::template::configuration::{Configuration, Rename, TemplateFile};
+use crate::code_generator::template::api::ResolvedApi;
+use crate::code_generator::template::configuration::Configuration;
 use crate::code_generator::template::resolve_strategy::{NoValidResolveStrategyError, ResolveStrategy};
-use crate::code_generator::template::resolver::{HandlebarsResolver, Resolver};
-use crate::raw_api::{Dtos, RawApi};
-use crate::raw_api::field_type::FieldType;
+use crate::code_generator::template::resolver::Resolver;
+use crate::raw_api::RawApi;
 
 mod resolve_strategy;
 mod api;
 pub mod resolver;
 pub mod configuration;
 pub mod configuration_reader;
+pub mod render;
 
 /// Generates code fom a given JSON-template.
 pub struct TemplateCodeGenerator<R: Resolver> {
@@ -31,16 +31,16 @@ impl<R: Resolver> CodeGenerator for TemplateCodeGenerator<R> {
 
     fn generate(&self, api: RawApi) -> Result<TargetFiles, Self::Error> {
         let mut result = TargetFiles::new();
-        let template_api = ResolvedApi::new(api, &self.resolver).unwrap();
+        let template_api = ResolvedApi::new(api, &self.resolver);
 
         for template_file in self.configuration.template_files.iter() {
             let resolve_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;
 
             match resolve_strategy {
-                ResolveStrategy::ForAllDTOs => result.insert_all(self.resolver.resolve_for_each_dto(template_file, template_api.get_dtos()).unwrap())?,
+                ResolveStrategy::ForAllDTOs => result.insert_all(self.resolver.resolve_for_each_dto(template_file, template_api.get_dtos()))?,
                 ResolveStrategy::ForEachDTO => {
                     for dto in template_api.get_dtos() {
-                        result.insert_all(self.resolver.resolve_for_single_dto(template_file, dto).unwrap())?
+                        result.insert_all(self.resolver.resolve_for_single_dto(template_file, dto))?
                     }
                 }
             }

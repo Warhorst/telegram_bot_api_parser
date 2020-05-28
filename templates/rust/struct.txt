@@ -1,11 +1,11 @@
-{{#each used_dtos as |used_dto|}}use super::{{used_dto.name_snake_case}}::{{used_dto.name}};
+{{#each used_dto_names as |used_dto_name|}}use super::{{used_dto_name.snake_case}}::{{used_dto_name.original}};
 {{/each}}
-pub struct {{name}} {
+pub struct {{name.original}} {
     {{#each fields as |field|}}{{field.name}}: {{{field.field_type}}},
     {{/each}}
 }
 
-impl {{name}} {
+impl {{name.original}} {
     {{#each fields as |field|}}pub fn {{field.name}}(&self) -> &{{{field.field_type}}} { &self.{{field.name}} }
     {{/each}}
 }

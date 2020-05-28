@@ -3,7 +3,8 @@ use std::fs::File;
 use crate::api_parser::ApiParser;
 use crate::code_generator::CodeGenerator;
 use crate::code_generator::template::configuration_reader::ConfigurationReader;
-use crate::code_generator::template::resolver::HandlebarsResolver;
+use crate::code_generator::template::render::RendererImpl;
+use crate::code_generator::template::resolver::ResolverImpl;
 use crate::code_generator::template::TemplateCodeGenerator;
 use crate::code_writer::CodeWriter;
 
@@ -20,7 +21,8 @@ fn main() {
     let parser = ApiParser;
     let raw_api = parser.parse(File::open("html/api.html").unwrap()).unwrap();
 
-    let generator = TemplateCodeGenerator::new(configuration.clone(), HandlebarsResolver::new(configuration.clone()).unwrap()).unwrap();
+    let resolver: ResolverImpl<RendererImpl> = ResolverImpl::new(configuration.clone());
+    let generator = TemplateCodeGenerator::new(configuration.clone(), resolver).unwrap();
     let target_files = generator.generate(raw_api).unwrap();
 
     let writer = CodeWriter;

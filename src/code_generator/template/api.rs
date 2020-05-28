@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use serde::Serialize;
 
-use crate::code_generator::template::{TemplateCodeGenerationError, TemplateCodeGenerator};
 use crate::code_generator::template::resolver::Resolver;
 use crate::raw_api::dto::Dto;
 use crate::raw_api::dto_field::DtoField;
@@ -17,16 +16,16 @@ pub struct ResolvedApi {
 }
 
 impl ResolvedApi {
-    pub  fn new<R: Resolver>(api: RawApi, resolver: &R) -> Result<Self, R::Error> {
+    pub  fn new<R: Resolver>(api: RawApi, resolver: &R) -> Self {
         let mut template_dtos = Vec::new();
 
         for dto in api.get_dtos().iter() {
-            template_dtos.push(ResolvedDto::new(dto, resolver)?)
+            template_dtos.push(ResolvedDto::new(dto, resolver))
         }
 
-        Ok(ResolvedApi {
+        ResolvedApi {
             resolved_dtos: template_dtos
-        })
+        }
     }
 
     pub fn get_dtos(&self) -> &ResolvedDtos {
@@ -42,13 +41,13 @@ pub struct ResolvedDto {
 }
 
 impl ResolvedDto {
-    pub fn new<R: Resolver>(dto: &Dto, resolver: &R) -> Result<Self, R::Error> {
+    pub fn new<R: Resolver>(dto: &Dto, resolver: &R) -> Self {
         let name = ResolvedDtoName::new(&dto.get_name());
         let mut fields = Vec::new();
         let mut used_dto_names = HashSet::new();
 
         for field in dto.get_fields().iter() {
-            fields.push(ResolvedDtoField::new(field, &name, resolver)?);
+            fields.push(ResolvedDtoField::new(field, &name, resolver));
 
             if let Some(dto_name) = field.get_field_type().get_dto_name() {
                 if name.original() != &dto_name {
@@ -57,11 +56,11 @@ impl ResolvedDto {
             }
         }
 
-        Ok(ResolvedDto {
+        ResolvedDto {
             name,
             fields,
             used_dto_names,
-        })
+        }
     }
 }
 
@@ -101,13 +100,13 @@ pub struct ResolvedDtoField {
 }
 
 impl ResolvedDtoField {
-    pub fn new<R: Resolver>(dto_field: &DtoField, dto_name: &ResolvedDtoName, resolver: &R) -> Result<Self, R::Error> {
-        let name = resolver.resolve_field_rename(dto_field.get_name().clone(), dto_name)?;
-        let field_type = resolver.resolve_field_type(dto_field.get_field_type())?;
+    pub fn new<R: Resolver>(dto_field: &DtoField, dto_name: &ResolvedDtoName, resolver: &R) -> Self {
+        let name = resolver.resolve_field_rename(dto_field.get_name().clone(), dto_name);
+        let field_type = resolver.resolve_field_type(dto_field.get_field_type());
 
-        Ok(ResolvedDtoField {
+        ResolvedDtoField {
             name,
             field_type,
-        })
+        }
     }
 }
