@@ -9,7 +9,7 @@ pub type Dtos = Vec<Dto>;
 /// Represents a collection of all extracted values from the HTML-API
 #[derive(Debug)]
 pub struct RawApi {
-    dtos: Dtos
+    pub dtos: Dtos
 }
 
 impl RawApi {
@@ -17,14 +17,5 @@ impl RawApi {
         RawApi {
             dtos: Vec::new()
         }
-    }
-
-    /// Adda DTO to the list of DTOs
-    pub fn add_dto(&mut self, dto: Dto) {
-        self.dtos.push(dto)
-    }
-
-    pub fn get_dtos(&self) -> &Dtos {
-        &self.dtos
     }
 }

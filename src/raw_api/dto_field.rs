@@ -3,8 +3,8 @@ use crate::raw_api::field_type::FieldType;
 /// Struct of a DTO with name and type
 #[derive(Eq, PartialEq, Debug)]
 pub struct DtoField {
-    name: String,
-    field_type: FieldType,
+    pub name: String,
+    pub field_type: FieldType,
 }
 
 impl DtoField {
@@ -13,14 +13,6 @@ impl DtoField {
             name,
             field_type: FieldType::from(FieldDescription { value: type_value, optional })
         }
-    }
-
-    pub fn get_name(&self) -> &String {
-        &self.name
-    }
-
-    pub fn get_field_type(&self) -> &FieldType {
-        &self.field_type
     }
 }
 

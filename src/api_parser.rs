@@ -1,13 +1,15 @@
-use crate::raw_api::RawApi;
+use std::fmt;
+
 use select::document::Document;
-use select::predicate::{Name, Predicate, Text};
 use select::node::Node;
+use select::predicate::{Name, Predicate, Text};
+use serde::export::Formatter;
+
+use crate::api_parser::ApiParseError::{DocumentError, ExtractDTOError, NoValidTableError, TableWithoutNameError};
 use crate::api_parser::TableContentType::{DTO, Method};
 use crate::raw_api::dto::Dto;
-use serde::export::Formatter;
-use std::fmt;
-use crate::api_parser::ApiParseError::{DocumentError, ExtractDTOError, NoValidTableError, TableWithoutNameError};
 use crate::raw_api::dto_field::DtoField;
+use crate::raw_api::RawApi;
 
 /// Extracts the raw API from the HTML.
 /// The current implementation assumes the following HTML-Scheme:
@@ -39,7 +41,7 @@ impl ApiParser {
     /// This is implemented by iterating over every node in the HTML. If a h4 is found, followed by a table,
     /// the text of the h4 is converted to a DTOs name and the table content to its fields.
     pub fn parse<R: std::io::Read>(&self, api_html: R) -> ParseResult {
-        let mut result = RawApi::new();
+        let mut raw_api = RawApi::new();
         let document = Document::from_read(api_html)?;
         let mut current_dto_name = None;
 
@@ -49,7 +51,7 @@ impl ApiParser {
 
                 Self::TABLE => match (&current_dto_name, self.get_table_content_type(&node)?) {
                     (Some(dto_name), DTO) => {
-                        result.add_dto(self.extract_dto(dto_name, &node)?);
+                        raw_api.dtos.push(self.extract_dto(dto_name, &node)?);
                         current_dto_name = None
                     },
 
@@ -61,7 +63,7 @@ impl ApiParser {
             }
         }
 
-        Ok(result)
+        Ok(raw_api)
     }
 
     /// Extracts a Dto from a given HTML node that contains a table.
@@ -187,9 +189,10 @@ impl From<std::io::Error> for ApiParseError {
 
 #[cfg(test)]
 mod tests {
-    use select::node::Node;
     use select::document::Document;
+    use select::node::Node;
     use select::predicate::Name;
+
     use crate::api_parser::ApiParser;
     use crate::raw_api::field_type::FieldType;
 
@@ -250,8 +253,8 @@ mod tests {
 
         let field = ApiParser {}.extract_field(table_row).unwrap();
 
-        assert_eq!(*field.get_name(), String::from(FIELD_NAME));
-        assert_eq!(*field.get_field_type(), create_expected_field_type(false));
+        assert_eq!(field.name, String::from(FIELD_NAME));
+        assert_eq!(field.field_type, create_expected_field_type(false));
     }
 
     /// Tests whether a DTOField can be extracted from a given table row node.
@@ -266,8 +269,8 @@ mod tests {
 
         let field = ApiParser {}.extract_field(table_row).unwrap();
 
-        assert_eq!(*field.get_name(), String::from(FIELD_NAME));
-        assert_eq!(*field.get_field_type(), create_expected_field_type(true));
+        assert_eq!(field.name, String::from(FIELD_NAME));
+        assert_eq!(field.field_type, create_expected_field_type(true));
     }
 
     /// Tests whether a dto can be extracted from a given html table.
@@ -280,9 +283,8 @@ mod tests {
 
         let dto = ApiParser {}.extract_dto(&dto_name, table).unwrap();
 
-        assert_eq!(*dto.get_name(), dto_name);
-        let fields = dto.get_fields();
-        assert_eq!(fields.len(), 1);
+        assert_eq!(dto.name, dto_name);
+        assert_eq!(dto.fields.len(), 1);
     }
 
     #[test]
@@ -291,10 +293,10 @@ mod tests {
 
         let raw_api = ApiParser {}.parse(bytes).unwrap();
 
-        let dtos = raw_api.get_dtos();
+        let dtos = raw_api.dtos;
         assert_eq!(dtos.len(), 1);
         let dto = dtos.get(0).unwrap();
-        assert_eq!(*dto.get_name(), String::from(DTO_NAME));
+        assert_eq!(dto.name, String::from(DTO_NAME));
     }
 
     /// Creates the expected FieldType of an extracted DTOField.
