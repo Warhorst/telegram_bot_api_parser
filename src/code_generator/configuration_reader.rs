@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use crate::code_generator::template::configuration::Configuration;
+use crate::code_generator::configuration::Configuration;
 
 pub struct ConfigurationReader;
 

@@ -1,7 +1,8 @@
+use core::fmt;
 use std::convert::TryFrom;
 use std::fmt::Formatter;
-use core::fmt;
-use crate::code_generator::template::resolve_strategy::ResolveStrategy::{ForAllDTOs, ForEachDTO};
+
+use crate::code_generator::resolve_strategy::ResolveStrategy::{ForAllDTOs, ForEachDTO};
 
 /// Represents how a template-file should be processed.
 pub enum ResolveStrategy {

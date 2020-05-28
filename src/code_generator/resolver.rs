@@ -1,20 +1,20 @@
 use serde::Serialize;
 
+use crate::code_generator::api::{Dto, DtoName, ResolvedDtos};
+use crate::code_generator::configuration::{Configuration, TemplateFile};
+use crate::code_generator::renderer::Renderer;
 use crate::code_generator::target_files::TargetFiles;
-use crate::code_generator::template::api::{ResolvedDto, ResolvedDtoName, ResolvedDtos};
-use crate::code_generator::template::configuration::{Configuration, TemplateFile};
-use crate::code_generator::template::render::Renderer;
 use crate::raw_api::field_type::FieldType;
 
 /// Trait for all objects that can resolve templates.
 pub trait Resolver {
-    fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &ResolvedDto) -> TargetFiles;
+    fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &Dto) -> TargetFiles;
 
     fn resolve_for_each_dto(&self, template_file: &TemplateFile, dtos: &ResolvedDtos) -> TargetFiles;
 
     fn resolve_field_type(&self, field_type: &FieldType) -> String;
 
-    fn resolve_field_rename(&self, field_name: String, field_rename_values: &ResolvedDtoName) -> String;
+    fn resolve_field_rename(&self, field_name: String, field_rename_values: &DtoName) -> String;
 }
 
 
@@ -26,7 +26,7 @@ pub struct ResolverImpl<E: Renderer> {
 }
 
 impl<E: Renderer> Resolver for ResolverImpl<E> {
-    fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &ResolvedDto) -> TargetFiles {
+    fn resolve_for_single_dto(&self, template_file: &TemplateFile, dto: &Dto) -> TargetFiles {
         self.resolve_template_file(template_file, dto)
     }
 
@@ -45,7 +45,7 @@ impl<E: Renderer> Resolver for ResolverImpl<E> {
         }
     }
 
-    fn resolve_field_rename(&self, field_name: String, field_rename_values: &ResolvedDtoName) -> String {
+    fn resolve_field_rename(&self, field_name: String, _field_rename_values: &DtoName) -> String {
         field_name
     }
 }
@@ -83,8 +83,8 @@ impl<E: Renderer> ResolverImpl<E> {
 /// TODO: Test Constructor, resolve_each, resolve_single
 #[cfg(test)]
 mod tests {
-    use crate::code_generator::template::render::RendererImpl;
-    use crate::code_generator::template::resolver::{Resolver, ResolverImpl};
+    use crate::code_generator::renderer::RendererImpl;
+    use crate::code_generator::resolver::{Resolver, ResolverImpl};
     use crate::raw_api::field_type::FieldType;
 
     use super::Configuration;

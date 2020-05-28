@@ -1,4 +1,4 @@
-use crate::raw_api::dto_field::FieldDescription;
+use crate::raw_api::raw_field::FieldDescription;
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum FieldType {
@@ -72,7 +72,7 @@ impl From<FieldDescription> for FieldType {
 #[cfg(test)]
 mod tests {
     use crate::raw_api::field_type::FieldType;
-    use crate::raw_api::dto_field::FieldDescription;
+    use crate::raw_api::raw_field::FieldDescription;
 
     #[test]
     fn success_integer() {

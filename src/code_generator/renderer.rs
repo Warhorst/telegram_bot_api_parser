@@ -1,8 +1,8 @@
 use handlebars::Handlebars;
 use serde::Serialize;
 
+use crate::code_generator::configuration::TemplateFile;
 use crate::code_generator::target_files::TargetFile;
-use crate::code_generator::template::configuration::TemplateFile;
 
 /// Renders registered templates.
 pub trait Renderer: Default {
@@ -85,7 +85,7 @@ struct SingleValueHolder {
 
 #[cfg(test)]
 mod tests {
-    use crate::code_generator::template::render::{Renderer, RendererImpl};
+    use crate::code_generator::renderer::{Renderer, RendererImpl};
 
     #[test]
     fn success_render_array() {

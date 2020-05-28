@@ -7,8 +7,8 @@ use serde::export::Formatter;
 
 use crate::api_parser::ApiParseError::{DocumentError, ExtractDTOError, NoValidTableError, TableWithoutNameError};
 use crate::api_parser::TableContentType::{DTO, Method};
-use crate::raw_api::dto::Dto;
-use crate::raw_api::dto_field::DtoField;
+use crate::raw_api::raw_dto::RawDto;
+use crate::raw_api::raw_field::RawField;
 use crate::raw_api::RawApi;
 
 /// Extracts the raw API from the HTML.
@@ -68,7 +68,7 @@ impl ApiParser {
 
     /// Extracts a Dto from a given HTML node that contains a table.
     /// This is implemented by taking the table body and iterating over every row, extracting the data from it.
-    fn extract_dto(&self, dto_name: &String, table_node: &Node) -> Result<Dto, ApiParseError> {
+    fn extract_dto(&self, dto_name: &String, table_node: &Node) -> Result<RawDto, ApiParseError> {
         let mut fields = Vec::new();
         let table_bodies = table_node.find(Name(Self::TABLE_BODY)).collect::<Vec<Node>>();
 
@@ -78,7 +78,7 @@ impl ApiParser {
                     fields.push(self.extract_field(&table_row)?)
                 }
 
-                Ok(Dto::new(dto_name.clone(), fields))
+                Ok(RawDto::new(dto_name.clone(), fields))
             },
 
             None => Err(ExtractDTOError(String::from("A table does not have a table body.")))
@@ -90,7 +90,7 @@ impl ApiParser {
     /// the description which indicates if the field is optional.
     ///
     /// The description may contain at least one em-element with the word "Optional", indicating the field is optional.
-    fn extract_field(&self, table_row: &Node) -> Result<DtoField, ApiParseError> {
+    fn extract_field(&self, table_row: &Node) -> Result<RawField, ApiParseError> {
         let data_nodes: Vec<Node> = table_row.find(Name(Self::TABLE_DATA)).collect();
         let field_node_option = data_nodes.get(0);
         let type_node_option = data_nodes.get(1);
@@ -102,7 +102,7 @@ impl ApiParser {
                 let type_string = self.get_node_text(type_node).unwrap();
                 let optional = description_node.find(Name(Self::EMPHASIS)).count() >= 1;
 
-                Ok(DtoField::new(field_name, type_string, optional))
+                Ok(RawField::new(field_name, type_string, optional))
             },
 
             _ => return Err(ExtractDTOError(String::from("A table row does not contain the expected three table data elements.")))
