@@ -6,14 +6,13 @@ use serde::Serialize;
 
 use crate::code_generator::api::Api;
 use crate::code_generator::configuration::Configuration;
+use crate::code_generator::renderer::Renderer;
 use crate::code_generator::resolve_strategy::{NoValidResolveStrategyError, ResolveStrategy};
-use crate::code_generator::resolver::Resolver;
 use crate::code_generator::target_files::{SameFilenameError, TargetFiles};
 use crate::raw_api::RawApi;
 
 pub mod configuration;
 pub mod configuration_reader;
-pub mod resolver;
 pub mod resolve_strategy;
 pub mod renderer;
 pub mod api;
@@ -26,41 +25,41 @@ pub trait CodeGenerator {
     fn generate(&self, api: RawApi) -> Result<TargetFiles, Self::Error>;
 }
 
-pub struct CodeGeneratorImpl<R: Resolver> {
+pub struct CodeGeneratorImpl<R: Renderer> {
     configuration: Configuration,
-    resolver: R,
+    renderer: R
 }
 
-impl<R: Resolver> CodeGenerator for CodeGeneratorImpl<R> {
+impl<R: Renderer> CodeGenerator for CodeGeneratorImpl<R> {
     type Error = TemplateCodeGenerationError;
 
     fn generate(&self, api: RawApi) -> Result<TargetFiles, Self::Error> {
-        let mut result = TargetFiles::new();
-        let template_api = Api::new(api, &self.resolver);
+        let mut target_files = TargetFiles::new();
+        let api = Api::new(api, &self.renderer);
 
         for template_file in self.configuration.template_files.iter() {
             let resolve_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;
 
             match resolve_strategy {
-                ResolveStrategy::ForAllDTOs => result.insert_all(self.resolver.resolve_for_each_dto(template_file, template_api.get_dtos()))?,
+                ResolveStrategy::ForAllDTOs => target_files.insert(self.renderer.render_template_file_dtos(template_file, api.get_dtos()))?,
                 ResolveStrategy::ForEachDTO => {
-                    for dto in template_api.get_dtos() {
-                        result.insert_all(self.resolver.resolve_for_single_dto(template_file, dto))?
+                    for dto in api.get_dtos() {
+                        target_files.insert(self.renderer.render_template_file_dtos(template_file, dto))?
                     }
                 }
             }
         }
 
-        Ok(result)
+        Ok(target_files)
     }
 }
 
-impl<R: Resolver> CodeGeneratorImpl<R> {
-    pub fn new(configuration: Configuration, resolver: R) -> Result<Self, TemplateCodeGenerationError> {
-        Ok(CodeGeneratorImpl {
+impl<R: Renderer> CodeGeneratorImpl<R> {
+    pub fn new(configuration: Configuration, renderer: R) -> Self {
+        CodeGeneratorImpl {
             configuration,
-            resolver,
-        })
+            renderer
+        }
     }
 }
 

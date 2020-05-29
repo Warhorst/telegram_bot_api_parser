@@ -7,7 +7,7 @@
   "renames" : [
     {
       "from" : "type",
-      "to" : "dto_type"
+      "to" : "{{snake_case}}_type"
     }
   ],
   "template_files": [

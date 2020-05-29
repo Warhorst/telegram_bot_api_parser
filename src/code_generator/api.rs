@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use serde::Serialize;
 
-use crate::code_generator::resolver::Resolver;
+use crate::code_generator::renderer::Renderer;
 use crate::raw_api::raw_dto::RawDto;
 use crate::raw_api::raw_field::RawField;
 use crate::raw_api::RawApi;
@@ -16,11 +16,11 @@ pub struct Api {
 }
 
 impl Api {
-    pub  fn new<R: Resolver>(api: RawApi, resolver: &R) -> Self {
+    pub  fn new<R: Renderer>(api: RawApi, renderer: &R) -> Self {
         let mut template_dtos = Vec::new();
 
         for dto in api.dtos.iter() {
-            template_dtos.push(Dto::new(dto, resolver))
+            template_dtos.push(Dto::new(dto, renderer))
         }
 
         Api {
@@ -41,13 +41,13 @@ pub struct Dto {
 }
 
 impl Dto {
-    pub fn new<R: Resolver>(dto: &RawDto, resolver: &R) -> Self {
+    pub fn new<R: Renderer>(dto: &RawDto, renderer: &R) -> Self {
         let name = DtoName::new(&dto.name);
         let mut fields = Vec::new();
         let mut used_dto_names = HashSet::new();
 
         for field in dto.fields.iter() {
-            fields.push(Field::new(field, &name, resolver));
+            fields.push(Field::new(field, &name, renderer));
 
             if let Some(dto_name) = field.field_type.get_dto_name() {
                 if name.original() != &dto_name {
@@ -100,9 +100,9 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new<R: Resolver>(dto_field: &RawField, dto_name: &DtoName, resolver: &R) -> Self {
-        let name = resolver.resolve_field_rename(dto_field.name.clone(), dto_name);
-        let field_type = resolver.resolve_field_type(&dto_field.field_type);
+    pub fn new<R: Renderer>(dto_field: &RawField, dto_name: &DtoName, renderer: &R) -> Self {
+        let name = renderer.render_rename(dto_field.name.clone(), dto_name);
+        let field_type = renderer.render_field_type(&dto_field.field_type);
 
         Field {
             name,

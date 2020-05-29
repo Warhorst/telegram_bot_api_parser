@@ -4,8 +4,7 @@ use crate::api_parser::ApiParser;
 use crate::code_generator::CodeGenerator;
 use crate::code_generator::CodeGeneratorImpl;
 use crate::code_generator::configuration_reader::ConfigurationReader;
-use crate::code_generator::renderer::RendererImpl;
-use crate::code_generator::resolver::ResolverImpl;
+use crate::code_generator::renderer::{Renderer, RendererImpl};
 use crate::code_writer::CodeWriter;
 
 pub mod util;
@@ -21,8 +20,7 @@ fn main() {
     let parser = ApiParser;
     let raw_api = parser.parse(File::open("html/api.html").unwrap()).unwrap();
 
-    let resolver: ResolverImpl<RendererImpl> = ResolverImpl::new(configuration.clone());
-    let generator = CodeGeneratorImpl::new(configuration.clone(), resolver).unwrap();
+    let generator = CodeGeneratorImpl::new(configuration.clone(), RendererImpl::from_configuration(configuration));
     let target_files = generator.generate(raw_api).unwrap();
 
     let writer = CodeWriter;
