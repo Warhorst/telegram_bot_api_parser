@@ -37,9 +37,6 @@ impl ApiParser {
     const DTO_TABLE_COLUMNS: usize = 3;
     const METHOD_TABLE_COLUMNS: usize = 4;
 
-    /// Parses a given Read (the HTML) to a raw api.
-    /// This is implemented by iterating over every node in the HTML. If a h4 is found, followed by a table,
-    /// the text of the h4 is converted to a DTOs name and the table content to its fields.
     pub fn parse<R: std::io::Read>(&self, api_html: R) -> ParseResult {
         let mut raw_api = RawApi::new();
         let document = Document::from_read(api_html)?;
@@ -66,8 +63,6 @@ impl ApiParser {
         Ok(raw_api)
     }
 
-    /// Extracts a Dto from a given HTML node that contains a table.
-    /// This is implemented by taking the table body and iterating over every row, extracting the data from it.
     fn extract_dto(&self, dto_name: &String, table_node: &Node) -> Result<RawDto, ApiParseError> {
         let mut fields = Vec::new();
         let table_bodies = table_node.find(Name(Self::TABLE_BODY)).collect::<Vec<Node>>();
@@ -85,11 +80,6 @@ impl ApiParser {
         }
     }
 
-    /// Extracts a DTOField from a given table row node. From this row, three table data nodes are retrieved.
-    /// The first node contains the field name, the second its type and the third
-    /// the description which indicates if the field is optional.
-    ///
-    /// The description may contain at least one em-element with the word "Optional", indicating the field is optional.
     fn extract_field(&self, table_row: &Node) -> Result<RawField, ApiParseError> {
         let data_nodes: Vec<Node> = table_row.find(Name(Self::TABLE_DATA)).collect();
         let field_node_option = data_nodes.get(0);
@@ -109,12 +99,6 @@ impl ApiParser {
         }
     }
 
-    /// Returns the text from the first Text-node in the given node.
-    /// For example calling this method on <foo><bar>Text</bar></foo> returns "Text".
-    ///
-    /// A special case is a array as type. The Text is split by an anchor node.
-    /// To get the full text "Array of <type>", the second found text node has to be
-    ///included.
     fn get_node_text(&self, node: &Node) -> Option<String> {
         let text_nodes: Vec<Node> = node.find(Text).collect();
 
@@ -137,8 +121,6 @@ impl ApiParser {
         }
     }
 
-    /// Returns whether the given node holds a table that describes the
-    /// fields of a DTO or the parameters of a method.
     fn get_table_content_type(&self, table_node: &Node) -> Result<TableContentType, ApiParseError> {
         match table_node.find(Name(Self::TABLE_HEADER)).count() {
             Self::DTO_TABLE_COLUMNS => Ok(DTO),
@@ -148,18 +130,11 @@ impl ApiParser {
     }
 }
 
-/// Type of a given tables content.
-/// Tables only contain either DTO fields or method parameters.
 enum TableContentType {
     DTO,
     Method
 }
 
-/// Possible errors of an api parse operation.
-///
-/// DocumentError - Any error from opening a select::document::Document. Holds the error in a Box (any error can be returned).
-/// NoValidTableError - Error that can occur when getting the TableContentType of a node. Holds the amount of table columns.
-/// ExtractDTOError - Error that can occur when extracting a DTO from a Node
 #[derive(Debug)]
 pub enum ApiParseError {
     DocumentError(std::io::Error),
