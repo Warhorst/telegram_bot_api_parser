@@ -11,6 +11,9 @@ use crate::raw_api::raw_dto::RawDto;
 use crate::raw_api::raw_field::RawField;
 use crate::raw_api::RawApi;
 
+mod tables;
+mod scraper;
+
 /// Extracts the raw API from the HTML.
 /// The current implementation assumes the following HTML-Scheme:
 ///
@@ -20,7 +23,7 @@ use crate::raw_api::RawApi;
 /// Method tables have the header Parameter/Type/Required/Description
 /// Before every table, a single h4 with the name of the DTO/method is located.
 /// Between the table and the h4 may be other content like descriptions.
-/// h4s aren't exclusively used to introduce DTOs/methods..
+/// h4s aren't exclusively used to introduce DTOs/methods.
 pub struct ApiParser;
 
 type ParseResult = Result<RawApi, ApiParseError>;
@@ -42,7 +45,7 @@ impl ApiParser {
         let document = Document::from_read(api_html)?;
         let mut current_dto_name = None;
 
-        for node in document.find(Name(ApiParser::H4).or(Name(ApiParser::TABLE))) {
+        for node in document.find(self.searched_nodes_predicate()) {
             match node.name().unwrap() {
                 Self::H4 => current_dto_name = self.get_node_text(&node),
 
@@ -61,6 +64,10 @@ impl ApiParser {
         }
 
         Ok(raw_api)
+    }
+
+    fn searched_nodes_predicate(&self) -> impl Predicate {
+        Name(ApiParser::H4).or(Name(ApiParser::TABLE))
     }
 
     fn extract_dto(&self, dto_name: &String, table_node: &Node) -> Result<RawDto, ApiParseError> {
