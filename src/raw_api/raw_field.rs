@@ -16,7 +16,6 @@ impl RawField {
     }
 }
 
-/// Struct of a DTO-field-type with its description from the api (type name and if it is optional).
 #[derive(Clone)]
 pub struct FieldDescription {
     pub value: String,

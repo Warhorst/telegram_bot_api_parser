@@ -13,13 +13,6 @@ pub type RawMethods = Vec<RawMethod>;
 /// Represents a collection of all extracted values from the HTML-API
 #[derive(Debug)]
 pub struct RawApi {
-    pub dtos: RawDtos
-}
-
-impl RawApi {
-    pub fn new() -> Self {
-        RawApi {
-            dtos: Vec::new()
-        }
-    }
+    pub raw_dtos: RawDtos,
+    pub raw_methods: RawMethods
 }

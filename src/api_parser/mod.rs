@@ -17,12 +17,12 @@ type ParseResult = Result<RawApi, ApiParseError>;
 
 impl ApiParser {
     pub fn parse<S: Scraper>(&self, scraper: S) -> ParseResult {
-        let mut raw_api = RawApi::new();
-
-        let dto_tables = scraper.get_dto_tables();
-        let method_tables = scraper.get_method_tables();
-
-        Ok(raw_api)
+        let raw_dtos = self.parse_dto_tables(scraper.get_dto_tables());
+        let raw_methods = self.parse_method_tables(scraper.get_method_tables());
+        Ok(RawApi {
+            raw_dtos,
+            raw_methods
+        })
     }
 
     fn parse_dto_tables(&self, dto_tables: DtoTables) -> RawDtos {

@@ -19,7 +19,7 @@ impl Api {
     pub  fn new<R: Renderer>(api: RawApi, renderer: &R) -> Self {
         let mut template_dtos = Vec::new();
 
-        for dto in api.dtos.iter() {
+        for dto in api.raw_dtos.iter() {
             template_dtos.push(Dto::new(dto, renderer))
         }
 

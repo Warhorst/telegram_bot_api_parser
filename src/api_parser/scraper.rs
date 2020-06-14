@@ -388,6 +388,7 @@ mod tests {
 
     /// The html string used for this test contains
     /// - two Dtos, FooDto and BazDto
+    /// - one method
     /// - three h4 headers (so one that does not introduce a Dto)
     /// - additional elements between header and table
     /// Some table cells also contain additional elements like <em>.

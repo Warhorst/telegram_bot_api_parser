@@ -16,10 +16,6 @@ impl TypeDescriptor {
     const BOOLEAN: &'static str = "Boolean";
     const ARRAY_OF: &'static str = "Arrayof";
 
-    /// Returns the DTOName of this FieldType.
-    ///
-    /// If this FieldType is Integer, String or Boolean, None is returned.
-    /// If this FieldType is wrapped in an Array or Optional, the DTOName of the wrapped value will be returned.
     pub fn get_dto_name(&self) -> Option<String> {
         match self {
             TypeDescriptor::DTO(dto_name) => Some(dto_name.clone()),
@@ -29,7 +25,6 @@ impl TypeDescriptor {
         }
     }
 
-    /// Returns a clone of the given String without whitespace
     fn trim_whitespace(string: &String) -> String {
         let mut result = string.clone();
         result.retain(|c| !c.is_whitespace());
@@ -39,11 +34,6 @@ impl TypeDescriptor {
 }
 
 impl From<FieldDescription> for TypeDescriptor {
-    /// Create a FieldType from a given FieldDescription (extracted from the API-HTML)
-    ///
-    /// If the FieldDescription-value contains "Array of", the type is an array encapsulating a FieldType.
-    /// If the FieldDescription is optional, the type is an optional encapsulating a FieldType.
-    /// Only the whole type can be optional, so Array of Optional for example is not possible.
     fn from(field_description: FieldDescription) -> Self {
         let value = field_description.value;
 
