@@ -48,7 +48,7 @@ impl ScraperImpl {
     }
 
     fn searched_nodes_predicate() -> impl Predicate {
-        Name(ApiParser::H4).or(Name(ApiParser::TABLE))
+        Name(Self::H4).or(Name(Self::TABLE))
     }
 
     fn get_node_text(node: &Node) -> Result<String, ScraperError> {

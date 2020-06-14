@@ -1,16 +1,16 @@
 use crate::raw_api::raw_field::FieldDescription;
 
 #[derive(Eq, PartialEq, Debug)]
-pub enum FieldType {
+pub enum TypeDescriptor {
     Integer,
     String,
     Boolean,
     DTO(String),
-    ArrayOf(Box<FieldType>),
-    Optional(Box<FieldType>)
+    ArrayOf(Box<TypeDescriptor>),
+    Optional(Box<TypeDescriptor>)
 }
 
-impl FieldType {
+impl TypeDescriptor {
     const INTEGER: &'static str = "Integer";
     const STRING: &'static str = "String";
     const BOOLEAN: &'static str = "Boolean";
@@ -22,9 +22,9 @@ impl FieldType {
     /// If this FieldType is wrapped in an Array or Optional, the DTOName of the wrapped value will be returned.
     pub fn get_dto_name(&self) -> Option<String> {
         match self {
-            FieldType::DTO(dto_name) => Some(dto_name.clone()),
-            FieldType::ArrayOf(array_field_type) => array_field_type.get_dto_name(),
-            FieldType::Optional(optional_field_type) => optional_field_type.get_dto_name(),
+            TypeDescriptor::DTO(dto_name) => Some(dto_name.clone()),
+            TypeDescriptor::ArrayOf(array_field_type) => array_field_type.get_dto_name(),
+            TypeDescriptor::Optional(optional_field_type) => optional_field_type.get_dto_name(),
             _ => None
         }
     }
@@ -38,7 +38,7 @@ impl FieldType {
     }
 }
 
-impl From<FieldDescription> for FieldType {
+impl From<FieldDescription> for TypeDescriptor {
     /// Create a FieldType from a given FieldDescription (extracted from the API-HTML)
     ///
     /// If the FieldDescription-value contains "Array of", the type is an array encapsulating a FieldType.
@@ -48,21 +48,21 @@ impl From<FieldDescription> for FieldType {
         let value = field_description.value;
 
         if field_description.optional {
-            return FieldType::Optional(Box::new(FieldType::from(FieldDescription::new(value, false))));
+            return TypeDescriptor::Optional(Box::new(TypeDescriptor::from(FieldDescription::new(value, false))));
         }
 
         match value.as_str() {
-            FieldType::INTEGER => FieldType::Integer,
-            FieldType::STRING => FieldType::String,
-            FieldType::BOOLEAN => FieldType::Boolean,
+            TypeDescriptor::INTEGER => TypeDescriptor::Integer,
+            TypeDescriptor::STRING => TypeDescriptor::String,
+            TypeDescriptor::BOOLEAN => TypeDescriptor::Boolean,
             _ => {
-                let trimmed = FieldType::trim_whitespace(&value);
+                let trimmed = TypeDescriptor::trim_whitespace(&value);
 
-                if trimmed.starts_with(FieldType::ARRAY_OF){
-                    let result = String::from(&trimmed.as_str()[FieldType::ARRAY_OF.len()..trimmed.len()]);
-                    FieldType::ArrayOf(Box::new(FieldType::from(FieldDescription::new(result, false))))
+                if trimmed.starts_with(TypeDescriptor::ARRAY_OF){
+                    let result = String::from(&trimmed.as_str()[TypeDescriptor::ARRAY_OF.len()..trimmed.len()]);
+                    TypeDescriptor::ArrayOf(Box::new(TypeDescriptor::from(FieldDescription::new(result, false))))
                 } else {
-                    FieldType::DTO(value)
+                    TypeDescriptor::DTO(value)
                 }
             }
         }
@@ -71,16 +71,16 @@ impl From<FieldDescription> for FieldType {
 
 #[cfg(test)]
 mod tests {
-    use crate::raw_api::field_type::FieldType;
     use crate::raw_api::raw_field::FieldDescription;
+    use crate::raw_api::type_descriptor::TypeDescriptor;
 
     #[test]
     fn success_integer() {
         let input = FieldDescription::new(String::from("Integer"), false);
-        let field_type = FieldType::from(input);
+        let field_type = TypeDescriptor::from(input);
 
         match field_type {
-            FieldType::Integer => (),
+            TypeDescriptor::Integer => (),
             _ => panic!("Value not parsed to Integer!")
         }
     }
@@ -88,10 +88,10 @@ mod tests {
     #[test]
     fn success_string() {
         let input = FieldDescription::new(String::from("String"), false);
-        let field_type = FieldType::from(input);
+        let field_type = TypeDescriptor::from(input);
 
         match field_type {
-            FieldType::String => (),
+            TypeDescriptor::String => (),
             _ => panic!("Value not parsed to String!")
         }
     }
@@ -99,10 +99,10 @@ mod tests {
     #[test]
     fn success_dto() {
         let input = FieldDescription::new(String::from("Update"), false);
-        let field_type = FieldType::from(input.clone());
+        let field_type = TypeDescriptor::from(input.clone());
 
         match field_type {
-            FieldType::DTO(dto_name) => {
+            TypeDescriptor::DTO(dto_name) => {
                 assert_eq!(dto_name, input.value)
             },
             _ => panic!("Value not parsed to DTO!")
@@ -115,12 +115,12 @@ mod tests {
         let value = String::from("Integer");
         array_of.push_str(value.as_str());
 
-        let field_type = FieldType::from(FieldDescription::new(array_of, false));
+        let field_type = TypeDescriptor::from(FieldDescription::new(array_of, false));
 
         match field_type {
-            FieldType::ArrayOf(array_value) => {
+            TypeDescriptor::ArrayOf(array_value) => {
                 match *array_value {
-                    FieldType::Integer => (),
+                    TypeDescriptor::Integer => (),
                     _ => panic!("Interior value not parsed to Integer!")
                 }
             }
@@ -133,12 +133,12 @@ mod tests {
         let value = String::from("Update");
         array_of.push_str(value.as_str());
 
-        let field_type = FieldType::from(FieldDescription::new(array_of, false));
+        let field_type = TypeDescriptor::from(FieldDescription::new(array_of, false));
 
         match field_type {
-            FieldType::ArrayOf(array_value) => {
+            TypeDescriptor::ArrayOf(array_value) => {
                 match *array_value {
-                    FieldType::DTO(dto_name) => {
+                    TypeDescriptor::DTO(dto_name) => {
                         assert_eq!(dto_name, value)
                     }
                     _ => panic!("Interior value not parsed to DTO!")
@@ -151,11 +151,11 @@ mod tests {
     #[test]
     fn success_optional() {
         let input = FieldDescription::new(String::from("String"), true);
-        let field_type = FieldType::from(input);
+        let field_type = TypeDescriptor::from(input);
 
         match field_type {
-            FieldType::Optional(value) => match *value {
-                FieldType::String => (),
+            TypeDescriptor::Optional(value) => match *value {
+                TypeDescriptor::String => (),
                 _ => panic!("Value not parsed to String!")
             },
             _ => panic!("Value not parsed to Optional!")
@@ -165,12 +165,12 @@ mod tests {
     #[test]
     fn success_optional_of_array() {
         let input = FieldDescription::new(String::from("Array of String"), true);
-        let field_type = FieldType::from(input);
+        let field_type = TypeDescriptor::from(input);
 
         match field_type {
-            FieldType::Optional(optional_value) => match *optional_value {
-                FieldType::ArrayOf(array_value) => match *array_value {
-                    FieldType::String => (),
+            TypeDescriptor::Optional(optional_value) => match *optional_value {
+                TypeDescriptor::ArrayOf(array_value) => match *array_value {
+                    TypeDescriptor::String => (),
                     _ => panic!("Value not parsed to String!")
                 },
                 _ => panic!("Value not parsed to Array!")
@@ -181,26 +181,26 @@ mod tests {
 
     #[test]
     fn success_get_dto_name_integer() {
-        let field_type = FieldType::Integer;
+        let field_type = TypeDescriptor::Integer;
         assert_eq!(None, field_type.get_dto_name())
     }
 
     #[test]
     fn success_get_dto_name_string() {
-        let field_type = FieldType::String;
+        let field_type = TypeDescriptor::String;
         assert_eq!(None, field_type.get_dto_name())
     }
 
     #[test]
     fn success_get_dto_name_boolean() {
-        let field_type = FieldType::Boolean;
+        let field_type = TypeDescriptor::Boolean;
         assert_eq!(None, field_type.get_dto_name())
     }
 
     #[test]
     fn success_get_dto_name_some_dto() {
         let dto_name = String::from("Update");
-        let field_type = FieldType::DTO(dto_name.clone());
+        let field_type = TypeDescriptor::DTO(dto_name.clone());
 
         assert_eq!(Some(dto_name), field_type.get_dto_name())
     }
@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn success_get_dto_name_optional_dto() {
         let dto_name = String::from("Update");
-        let field_type = FieldType::Optional(Box::new(FieldType::DTO(dto_name.clone())));
+        let field_type = TypeDescriptor::Optional(Box::new(TypeDescriptor::DTO(dto_name.clone())));
 
         assert_eq!(Some(dto_name), field_type.get_dto_name())
     }
@@ -216,7 +216,7 @@ mod tests {
     #[test]
     fn success_get_dto_name_array_dto() {
         let dto_name = String::from("Update");
-        let field_type = FieldType::ArrayOf(Box::new(FieldType::DTO(dto_name.clone())));
+        let field_type = TypeDescriptor::ArrayOf(Box::new(TypeDescriptor::DTO(dto_name.clone())));
 
         assert_eq!(Some(dto_name), field_type.get_dto_name())
     }

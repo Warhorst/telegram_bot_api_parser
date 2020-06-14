@@ -4,12 +4,12 @@ use serde::Serialize;
 use crate::code_generator::api::DtoName;
 use crate::code_generator::configuration::{Configuration, Rename, TemplateFile};
 use crate::code_generator::target_files::TargetFile;
-use crate::raw_api::field_type::FieldType;
+use crate::raw_api::type_descriptor::TypeDescriptor;
 
 pub trait Renderer {
     fn from_configuration(configuration: Configuration) -> Self;
 
-    fn render_field_type(&self, field_type: &FieldType) -> String;
+    fn render_field_type(&self, field_type: &TypeDescriptor) -> String;
 
     fn render_template_file_dtos<T: Serialize>(&self, template_file: &TemplateFile, dtos: &T) -> TargetFile;
 
@@ -46,14 +46,14 @@ impl<'a> Renderer for RendererImpl<'a> {
         }
     }
 
-    fn render_field_type(&self, field_type: &FieldType) -> String {
+    fn render_field_type(&self, field_type: &TypeDescriptor) -> String {
         match field_type {
-            FieldType::Integer => self.integer_type.clone(),
-            FieldType::String => self.string_type.clone(),
-            FieldType::Boolean => self.boolean_type.clone(),
-            FieldType::DTO(dto_name) => dto_name.clone(),
-            FieldType::ArrayOf(array_field_type) => self.render_array_string(self.render_field_type(array_field_type)),
-            FieldType::Optional(optional_field_type) => self.render_optional_string(self.render_field_type(optional_field_type))
+            TypeDescriptor::Integer => self.integer_type.clone(),
+            TypeDescriptor::String => self.string_type.clone(),
+            TypeDescriptor::Boolean => self.boolean_type.clone(),
+            TypeDescriptor::DTO(dto_name) => dto_name.clone(),
+            TypeDescriptor::ArrayOf(array_field_type) => self.render_array_string(self.render_field_type(array_field_type)),
+            TypeDescriptor::Optional(optional_field_type) => self.render_optional_string(self.render_field_type(optional_field_type))
         }
     }
 
@@ -134,7 +134,7 @@ struct SingleValueHolder {
 mod tests {
     use crate::code_generator::configuration::Configuration;
     use crate::code_generator::renderer::{Renderer, RendererImpl};
-    use crate::raw_api::field_type::FieldType;
+    use crate::raw_api::type_descriptor::TypeDescriptor;
 
     #[test]
     fn success_render_array() {
@@ -160,12 +160,12 @@ mod tests {
     fn success_render_field_type() {
         let renderer = create_renderer();
         let input_expected = vec![
-            (renderer.render_field_type(&FieldType::Integer), String::from("u64")),
-            (renderer.render_field_type(&FieldType::String), String::from("String")),
-            (renderer.render_field_type(&FieldType::Boolean), String::from("bool")),
-            (renderer.render_field_type(&FieldType::Optional(Box::new(FieldType::DTO(String::from("Update"))))), String::from("Option<Update>")),
-            (renderer.render_field_type(&FieldType::ArrayOf(Box::new(FieldType::DTO(String::from("Update"))))), String::from("Vec<Update>")),
-            (renderer.render_field_type(&FieldType::Optional(Box::new(FieldType::ArrayOf(Box::new(FieldType::DTO(String::from("Update"))))))), String::from("Option<Vec<Update>>"))
+            (renderer.render_field_type(&TypeDescriptor::Integer), String::from("u64")),
+            (renderer.render_field_type(&TypeDescriptor::String), String::from("String")),
+            (renderer.render_field_type(&TypeDescriptor::Boolean), String::from("bool")),
+            (renderer.render_field_type(&TypeDescriptor::Optional(Box::new(TypeDescriptor::DTO(String::from("Update"))))), String::from("Option<Update>")),
+            (renderer.render_field_type(&TypeDescriptor::ArrayOf(Box::new(TypeDescriptor::DTO(String::from("Update"))))), String::from("Vec<Update>")),
+            (renderer.render_field_type(&TypeDescriptor::Optional(Box::new(TypeDescriptor::ArrayOf(Box::new(TypeDescriptor::DTO(String::from("Update"))))))), String::from("Option<Vec<Update>>"))
         ];
 
         input_expected.into_iter().for_each(|(input, expected)| assert_eq!(input, expected));
