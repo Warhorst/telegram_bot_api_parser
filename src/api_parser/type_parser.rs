@@ -16,19 +16,38 @@ impl TypeParserImpl {
     const OPTIONAL_STR: &'static str = "Optional";
 
     fn field_is_optional_by_description(&self, description_string: String) -> bool {
-        unimplemented!()
+        self.trim_whitespace(description_string).starts_with(Self::OPTIONAL_STR)
     }
 
     fn create_base_field_type_from_string(&self, type_string: String) -> TypeDescriptor {
-        unimplemented!()
+        match type_string.as_str() {
+            Self::INTEGER_STR => TypeDescriptor::Integer,
+            Self::STRING_STR => TypeDescriptor::String,
+            Self::BOOLEAN_STR => TypeDescriptor::Boolean,
+            _ => {
+                let trimmed = self.trim_whitespace(type_string.clone());
+
+                if trimmed.starts_with(Self::ARRAY_OF_STR){
+                    let array_type = String::from(&trimmed.as_str()[Self::ARRAY_OF_STR.len()..trimmed.len()]);
+                    TypeDescriptor::ArrayOf(Box::new(self.create_base_field_type_from_string(array_type)))
+                } else {
+                    TypeDescriptor::DTO(value)
+                }
+            }
+        }
     }
 
     fn parameter_is_optional_by_required_string(&self, required_string: String) -> bool {
-        unimplemented!()
+        self.trim_whitespace(required_string).starts_with(Self::OPTIONAL_STR)
     }
 
     fn create_base_parameter_type_from_string(&self, type_string: String) -> TypeDescriptor {
         unimplemented!()
+    }
+
+    fn trim_whitespace(&self, mut string: String) -> String {
+        string.retain(|c| !c.is_whitespace());
+        string
     }
 }
 
