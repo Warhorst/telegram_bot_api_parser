@@ -1,7 +1,3 @@
-use std::fmt;
-
-use serde::export::Formatter;
-
 use crate::api_parser::scraper::Scraper;
 use crate::api_parser::tables::{DtoTables, MethodTables, DtoTable, DtoRow, MethodTable, MethodRow};
 use crate::raw_api::{RawApi, RawDtos, RawMethods};

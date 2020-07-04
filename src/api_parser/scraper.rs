@@ -3,7 +3,6 @@ use select::node::Node;
 use select::predicate::{Name, Predicate, Text};
 use serde::export::Formatter;
 
-use crate::api_parser::ApiParser;
 use crate::api_parser::tables::{DtoRow, DtoTable, DtoTables, MethodRow, MethodTable, MethodTables, Table};
 
 pub trait Scraper {
