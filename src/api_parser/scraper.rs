@@ -34,10 +34,12 @@ impl ScraperImpl {
         let mut current_table_name = None;
 
         for node in document.find(Self::searched_nodes_predicate()) {
-            match node.name().unwrap() {
-                Self::H4 => current_table_name = Some(Self::get_node_text(&node)?),
-                Self::TABLE => tables.push(Self::extract_table_from_node(&node, &current_table_name)?),
-                _ => ()
+            if let Some(name) = node.name() {
+                match name {
+                    Self::H4 => current_table_name = Some(Self::get_node_text(&node)?),
+                    Self::TABLE => tables.push(Self::extract_table_from_node(&node, &current_table_name)?),
+                    _ => ()
+                }
             }
         }
 
