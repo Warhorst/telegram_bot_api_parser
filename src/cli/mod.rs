@@ -12,8 +12,13 @@ pub struct ApiParserApplication;
 
 impl ApiParserApplication {
     pub fn run(&self) {
-        let reader = ConfigurationReader;
-        let configuration = reader.read().unwrap();
+        let configuration = match ConfigurationReader.read() {
+            Ok(configuration) => configuration,
+            Err(error) => {
+                eprintln!("Error while reading the configuration file: {}", error);
+                return
+            }
+        };
 
         let scraper = ScraperImpl::from_html(File::open("html/api.html").unwrap()).unwrap();
         let type_parser = TypeParserImpl;
