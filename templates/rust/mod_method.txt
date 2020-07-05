@@ -1,0 +1,2 @@
+{{#each this as |method|}}pub mod {{method.name.snake_case}};
+{{/each}}

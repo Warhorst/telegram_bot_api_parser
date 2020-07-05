@@ -1,19 +1,28 @@
 use handlebars::Handlebars;
 use serde::Serialize;
 
-use crate::code_generator::api::DtoName;
 use crate::code_generator::configuration::{Configuration, Rename, TemplateFile};
 use crate::code_generator::target_files::TargetFile;
 use crate::raw_api::type_descriptor::TypeDescriptor;
+use crate::code_generator::names::Names;
+use crate::code_generator::api::{Dtos, Methods};
+use crate::code_generator::api::dto::Dto;
+use crate::code_generator::api::method::Method;
 
 pub trait Renderer {
     fn from_configuration(configuration: Configuration) -> Self;
 
-    fn render_field_type(&self, field_type: &TypeDescriptor) -> String;
+    fn render_for_single_dto(&self, dto: &Dto, template_file: &TemplateFile) -> TargetFile;
 
-    fn render_template_file_dtos<T: Serialize>(&self, template_file: &TemplateFile, dtos: &T) -> TargetFile;
+    fn render_for_all_dtos(&self, dto: &Dtos, template_file: &TemplateFile) -> TargetFile;
 
-    fn render_rename(&self, field_name: String, field_rename_values: &DtoName) -> String;
+    fn render_for_single_method(&self, method: &Method, template_file: &TemplateFile) -> TargetFile;
+
+    fn render_for_all_methods(&self, method: &Methods, template_file: &TemplateFile) -> TargetFile;
+
+    fn render_type(&self, field_type: &TypeDescriptor) -> String;
+
+    fn render_rename(&self, field_name: String, field_rename_values: &Names) -> String;
 }
 
 pub struct RendererImpl<'a> {
@@ -46,29 +55,34 @@ impl<'a> Renderer for RendererImpl<'a> {
         }
     }
 
-    fn render_field_type(&self, field_type: &TypeDescriptor) -> String {
+    fn render_for_single_dto(&self, dto: &Dto, template_file: &TemplateFile) -> TargetFile {
+        self.render_instance(dto, template_file)
+    }
+
+    fn render_for_all_dtos(&self, dtos: &Dtos, template_file: &TemplateFile) -> TargetFile {
+        self.render_instance(dtos, template_file)
+    }
+
+    fn render_for_single_method(&self, method: &Method, template_file: &TemplateFile) -> TargetFile {
+        self.render_instance(method, template_file)
+    }
+
+    fn render_for_all_methods(&self, methods: &Methods, template_file: &TemplateFile) -> TargetFile {
+        self.render_instance(methods, template_file)
+    }
+
+    fn render_type(&self, field_type: &TypeDescriptor) -> String {
         match field_type {
             TypeDescriptor::Integer => self.integer_type.clone(),
             TypeDescriptor::String => self.string_type.clone(),
             TypeDescriptor::Boolean => self.boolean_type.clone(),
             TypeDescriptor::DTO(dto_name) => dto_name.clone(),
-            TypeDescriptor::ArrayOf(array_field_type) => self.render_array_string(self.render_field_type(array_field_type)),
-            TypeDescriptor::Optional(optional_field_type) => self.render_optional_string(self.render_field_type(optional_field_type))
+            TypeDescriptor::ArrayOf(array_field_type) => self.render_array_string(self.render_type(array_field_type)),
+            TypeDescriptor::Optional(optional_field_type) => self.render_optional_string(self.render_type(optional_field_type))
         }
     }
 
-    fn render_template_file_dtos<T: Serialize>(&self, template_file: &TemplateFile, dtos: &T) -> TargetFile {
-        let template_path = &template_file.template_path;
-        let filename = self.registry.render(Self::get_file_name_template_name(&template_path).as_str(), dtos).unwrap();
-        let content = self.registry.render(&template_path, dtos).unwrap();
-
-        TargetFile {
-            file_name: filename,
-            content
-        }
-    }
-
-    fn render_rename(&self, field_name: String, field_rename_values: &DtoName) -> String {
+    fn render_rename(&self, field_name: String, field_rename_values: &Names) -> String {
         let template_name = Self::get_rename_template_name(&field_name);
 
         if self.registry.has_template(template_name.as_str()) {
@@ -116,6 +130,17 @@ impl<'a> RendererImpl<'a> {
         result
     }
 
+    fn render_instance<T: Serialize>(&self, instance: &T, template_file: &TemplateFile) -> TargetFile {
+        let template_path = &template_file.template_path;
+        let file_name = self.registry.render(Self::get_file_name_template_name(&template_path).as_str(), instance).unwrap();
+        let content = self.registry.render(&template_path, instance).unwrap();
+
+        TargetFile {
+            file_name,
+            content
+        }
+    }
+
     fn render_array_string(&self, value: String) -> String {
         self.registry.render(Self::ARRAY_TEMPLATE, &SingleValueHolder { value }).unwrap()
     }
@@ -160,12 +185,12 @@ mod tests {
     fn success_render_field_type() {
         let renderer = create_renderer();
         let input_expected = vec![
-            (renderer.render_field_type(&TypeDescriptor::Integer), String::from("u64")),
-            (renderer.render_field_type(&TypeDescriptor::String), String::from("String")),
-            (renderer.render_field_type(&TypeDescriptor::Boolean), String::from("bool")),
-            (renderer.render_field_type(&TypeDescriptor::Optional(Box::new(TypeDescriptor::DTO(String::from("Update"))))), String::from("Option<Update>")),
-            (renderer.render_field_type(&TypeDescriptor::ArrayOf(Box::new(TypeDescriptor::DTO(String::from("Update"))))), String::from("Vec<Update>")),
-            (renderer.render_field_type(&TypeDescriptor::Optional(Box::new(TypeDescriptor::ArrayOf(Box::new(TypeDescriptor::DTO(String::from("Update"))))))), String::from("Option<Vec<Update>>"))
+            (renderer.render_type(&TypeDescriptor::Integer), String::from("u64")),
+            (renderer.render_type(&TypeDescriptor::String), String::from("String")),
+            (renderer.render_type(&TypeDescriptor::Boolean), String::from("bool")),
+            (renderer.render_type(&TypeDescriptor::Optional(Box::new(TypeDescriptor::DTO(String::from("Update"))))), String::from("Option<Update>")),
+            (renderer.render_type(&TypeDescriptor::ArrayOf(Box::new(TypeDescriptor::DTO(String::from("Update"))))), String::from("Vec<Update>")),
+            (renderer.render_type(&TypeDescriptor::Optional(Box::new(TypeDescriptor::ArrayOf(Box::new(TypeDescriptor::DTO(String::from("Update"))))))), String::from("Option<Vec<Update>>"))
         ];
 
         input_expected.into_iter().for_each(|(input, expected)| assert_eq!(input, expected));

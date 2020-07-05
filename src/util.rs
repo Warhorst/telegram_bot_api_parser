@@ -22,6 +22,34 @@ pub fn to_snake_case(input: &String) -> String {
     result
 }
 
+pub fn to_camel_case(input: &String) -> String {
+    let mut result = String::new();
+
+    for (i, c) in input.chars().enumerate() {
+        if i == 0 && c.is_uppercase() {
+            result.push(c.to_ascii_lowercase());
+        } else {
+            result.push(c)
+        }
+    }
+
+    result
+}
+
+pub fn to_capital_camel_case(input: &String) -> String {
+    let mut result = String::new();
+
+    for (i, c) in input.chars().enumerate() {
+        if i == 0 && c.is_lowercase() {
+            result.push(c.to_ascii_uppercase());
+        } else {
+            result.push(c)
+        }
+    }
+
+    result
+}
+
 /// Checks whether the given String is a template.
 /// It is assumed to be a template if it contains a string surrounded by double braces (Hex 7B and 7D).
 pub fn is_template(input: &String) -> bool {

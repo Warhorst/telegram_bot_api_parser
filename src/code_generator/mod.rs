@@ -16,6 +16,7 @@ pub mod configuration_reader;
 pub mod resolve_strategy;
 pub mod renderer;
 pub mod api;
+mod names;
 pub mod target_files;
 
 /// Generates code from the extracted api and stores it in a file-filecontent-map.
@@ -41,10 +42,16 @@ impl<R: Renderer> CodeGenerator for CodeGeneratorImpl<R> {
             let resolve_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;
 
             match resolve_strategy {
-                ResolveStrategy::ForAllDTOs => target_files.insert(self.renderer.render_template_file_dtos(template_file, api.get_dtos()))?,
+                ResolveStrategy::ForAllDTOs => target_files.insert(self.renderer.render_for_all_dtos(&api.dtos, template_file))?,
+                ResolveStrategy::ForAllMethods => target_files.insert(self.renderer.render_for_all_methods(&api.methods, template_file))?,
                 ResolveStrategy::ForEachDTO => {
-                    for dto in api.get_dtos() {
-                        target_files.insert(self.renderer.render_template_file_dtos(template_file, dto))?
+                    for dto in &api.dtos {
+                        target_files.insert(self.renderer.render_for_single_dto(dto, template_file))?
+                    }
+                }
+                ResolveStrategy::ForEachMethod => {
+                    for method in &api.methods {
+                        target_files.insert(self.renderer.render_for_single_method(method, template_file))?
                     }
                 }
             }

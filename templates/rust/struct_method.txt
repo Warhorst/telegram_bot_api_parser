@@ -1,0 +1,9 @@
+{{#each used_dto_names as |used_dto_name|}}use super::{{used_dto_name.snake_case}}::{{used_dto_name.capital_camel_case}};
+{{/each}}
+
+pub fn {{name.snake_case}}(
+{{#each parameters as |parameter|}}{{parameter.name}}: {{{parameter.parameter_type}}},
+{{/each}}
+) {
+    unimplemented!()
+}
