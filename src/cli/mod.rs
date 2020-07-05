@@ -16,21 +16,40 @@ impl ApiParserApplication {
             Ok(configuration) => configuration,
             Err(error) => {
                 eprintln!("Error while reading the configuration file: {}", error);
-                return
+                return;
             }
         };
 
-        let scraper = ScraperImpl::from_html(File::open("html/api.html").unwrap()).unwrap();
-        let type_parser = TypeParserImpl;
+        let api_html = match File::open("html/api.html") {
+            Ok(file) => file,
+            Err(error) => {
+                eprintln!("Error while opening the api HTML file: {}", error);
+                return;
+            }
+        };
 
-        let parser = ApiParser::new(scraper, type_parser);
+        let scraper = match ScraperImpl::from_html(api_html) {
+            Ok(scraper) => scraper,
+            Err(error) => {
+                eprintln!("An error occurred while scraping the HTML: {}", error);
+                return;
+            }
+        };
+        let parser = ApiParser::new(scraper, TypeParserImpl);
         let raw_api = parser.parse();
 
         let generator = CodeGeneratorImpl::new(configuration.clone(), RendererImpl::from_configuration(configuration));
-        let target_files = generator.generate(raw_api).unwrap();
+        let target_files = match generator.generate(raw_api) {
+            Ok(target_files) => target_files,
+            Err(error) => {
+                eprintln!("An error occurred while generating the code: {}", error);
+                return;
+            }
+        };
 
-        let writer = CodeWriter;
-        writer.write(target_files).unwrap();
+        if let Err(error) = CodeWriter.write(target_files) {
+            eprintln!("An error ocurred while writing the code: {}", error)
+        }
     }
 }
 
