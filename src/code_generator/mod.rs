@@ -19,22 +19,20 @@ pub mod api;
 mod names;
 pub mod target_files;
 
-/// Generates code from the extracted api and stores it in a file-filecontent-map.
-pub trait CodeGenerator {
-    type Error;
-
-    fn generate(&self, api: RawApi) -> Result<TargetFiles, Self::Error>;
-}
-
-pub struct CodeGeneratorImpl<R: Renderer> {
+pub struct CodeGenerator<R: Renderer> {
     configuration: Configuration,
     renderer: R
 }
 
-impl<R: Renderer> CodeGenerator for CodeGeneratorImpl<R> {
-    type Error = TemplateCodeGenerationError;
+impl<R: Renderer> CodeGenerator<R> {
+    pub fn new(configuration: Configuration, renderer: R) -> Self {
+        CodeGenerator {
+            configuration,
+            renderer
+        }
+    }
 
-    fn generate(&self, api: RawApi) -> Result<TargetFiles, Self::Error> {
+    pub fn generate(&self, api: RawApi) -> Result<TargetFiles, TemplateCodeGenerationError> {
         let mut target_files = TargetFiles::new();
         let api = Api::new(api, &self.renderer);
 
@@ -58,15 +56,6 @@ impl<R: Renderer> CodeGenerator for CodeGeneratorImpl<R> {
         }
 
         Ok(target_files)
-    }
-}
-
-impl<R: Renderer> CodeGeneratorImpl<R> {
-    pub fn new(configuration: Configuration, renderer: R) -> Self {
-        CodeGeneratorImpl {
-            configuration,
-            renderer
-        }
     }
 }
 

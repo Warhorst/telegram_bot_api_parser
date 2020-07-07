@@ -2,7 +2,7 @@ use std::fs::File;
 
 use crate::api_parser::ApiParser;
 use crate::api_parser::scraper::ScraperImpl;
-use crate::code_generator::{CodeGenerator, CodeGeneratorImpl};
+use crate::code_generator::CodeGenerator;
 use crate::code_generator::configuration_reader::ConfigurationReader;
 use crate::code_generator::renderer::{Renderer, RendererImpl};
 use crate::code_writer::CodeWriter;
@@ -38,7 +38,7 @@ impl ApiParserApplication {
         let parser = ApiParser::new(scraper, TypeParserImpl);
         let raw_api = parser.parse();
 
-        let generator = CodeGeneratorImpl::new(configuration.clone(), RendererImpl::from_configuration(configuration).unwrap());
+        let generator = CodeGenerator::new(configuration.clone(), RendererImpl::from_configuration(configuration).unwrap());
         let target_files = match generator.generate(raw_api) {
             Ok(target_files) => target_files,
             Err(error) => {
