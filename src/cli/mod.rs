@@ -38,7 +38,7 @@ impl ApiParserApplication {
         let parser = ApiParser::new(scraper, TypeParserImpl);
         let raw_api = parser.parse();
 
-        let generator = CodeGeneratorImpl::new(configuration.clone(), RendererImpl::from_configuration(configuration));
+        let generator = CodeGeneratorImpl::new(configuration.clone(), RendererImpl::from_configuration(configuration).unwrap());
         let target_files = match generator.generate(raw_api) {
             Ok(target_files) => target_files,
             Err(error) => {

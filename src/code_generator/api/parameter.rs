@@ -15,11 +15,11 @@ impl Parameter {
         let name = match raw_parameter.parameter_type.get_dto_name() {
             Some(dto_name) => {
                 let dto_name = Names::new(&dto_name);
-                renderer.render_rename(raw_parameter.name, &dto_name)
+                renderer.render_rename(raw_parameter.name, &dto_name).unwrap()
             },
             None => raw_parameter.name
         };
-        let parameter_type = renderer.render_type(&raw_parameter.parameter_type);
+        let parameter_type = renderer.render_type(&raw_parameter.parameter_type).unwrap();
 
         Parameter {
             name,

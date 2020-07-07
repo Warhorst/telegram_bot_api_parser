@@ -42,16 +42,16 @@ impl<R: Renderer> CodeGenerator for CodeGeneratorImpl<R> {
             let resolve_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;
 
             match resolve_strategy {
-                ResolveStrategy::ForAllDTOs => target_files.insert(self.renderer.render_for_all_dtos(&api.dtos, template_file))?,
-                ResolveStrategy::ForAllMethods => target_files.insert(self.renderer.render_for_all_methods(&api.methods, template_file))?,
+                ResolveStrategy::ForAllDTOs => target_files.insert(self.renderer.render_for_all_dtos(&api.dtos, template_file).unwrap())?,
+                ResolveStrategy::ForAllMethods => target_files.insert(self.renderer.render_for_all_methods(&api.methods, template_file).unwrap())?,
                 ResolveStrategy::ForEachDTO => {
                     for dto in &api.dtos {
-                        target_files.insert(self.renderer.render_for_single_dto(dto, template_file))?
+                        target_files.insert(self.renderer.render_for_single_dto(dto, template_file).unwrap())?
                     }
                 }
                 ResolveStrategy::ForEachMethod => {
                     for method in &api.methods {
-                        target_files.insert(self.renderer.render_for_single_method(method, template_file))?
+                        target_files.insert(self.renderer.render_for_single_method(method, template_file).unwrap())?
                     }
                 }
             }

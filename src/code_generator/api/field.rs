@@ -12,8 +12,8 @@ pub struct Field {
 
 impl Field {
     pub fn new<R: Renderer>(raw_field: RawField, dto_name: &Names, renderer: &R) -> Self {
-        let name = renderer.render_rename(raw_field.name.clone(), dto_name);
-        let field_type = renderer.render_type(&raw_field.field_type);
+        let name = renderer.render_rename(raw_field.name.clone(), dto_name).unwrap();
+        let field_type = renderer.render_type(&raw_field.field_type).unwrap();
 
         Field {
             name,
