@@ -1,12 +1,11 @@
 use std::convert::TryFrom;
 use std::fmt;
 
-use handlebars::{RenderError, TemplateError, TemplateFileError};
 use serde::Serialize;
 
 use crate::code_generator::api::Api;
 use crate::code_generator::configuration::Configuration;
-use crate::code_generator::renderer::Renderer;
+use crate::code_generator::renderer::{Renderer, RendererError};
 use crate::code_generator::resolve_strategy::{NoValidResolveStrategyError, ResolveStrategy};
 use crate::code_generator::target_files::{SameFilenameError, TargetFiles};
 use crate::raw_api::RawApi;
@@ -40,16 +39,16 @@ impl<R: Renderer> CodeGenerator<R> {
             let resolve_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;
 
             match resolve_strategy {
-                ResolveStrategy::ForAllDTOs => target_files.insert(self.renderer.render_for_all_dtos(&api.dtos, template_file).unwrap())?,
-                ResolveStrategy::ForAllMethods => target_files.insert(self.renderer.render_for_all_methods(&api.methods, template_file).unwrap())?,
+                ResolveStrategy::ForAllDTOs => target_files.insert(self.renderer.render_for_all_dtos(&api.dtos, template_file)?)?,
+                ResolveStrategy::ForAllMethods => target_files.insert(self.renderer.render_for_all_methods(&api.methods, template_file)?)?,
                 ResolveStrategy::ForEachDTO => {
                     for dto in &api.dtos {
-                        target_files.insert(self.renderer.render_for_single_dto(dto, template_file).unwrap())?
+                        target_files.insert(self.renderer.render_for_single_dto(dto, template_file)?)?
                     }
                 }
                 ResolveStrategy::ForEachMethod => {
                     for method in &api.methods {
-                        target_files.insert(self.renderer.render_for_single_method(method, template_file).unwrap())?
+                        target_files.insert(self.renderer.render_for_single_method(method, template_file)?)?
                     }
                 }
             }
@@ -66,43 +65,37 @@ struct SingleValueHolder {
 }
 
 #[derive(Debug)]
-pub enum TemplateCodeGenerationError {
+pub enum TemplateCodeGenerationError<'a> {
     NoValidResolveStrategyError(NoValidResolveStrategyError),
-    IoError(std::io::Error),
     SameFilenameError(SameFilenameError),
-    HandlebarsTemplateError(TemplateError),
-    HandlebarsTemplateFileError(TemplateFileError),
-    HandlebarsRenderError(RenderError),
+    RendererError(Box<dyn RendererError + 'a>)
 }
 
-impl std::error::Error for TemplateCodeGenerationError {}
+impl<'a> std::error::Error for TemplateCodeGenerationError<'a> {}
 
-impl std::fmt::Display for TemplateCodeGenerationError {
+impl<'a> std::fmt::Display for TemplateCodeGenerationError<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TemplateCodeGenerationError::NoValidResolveStrategyError(e) => e.fmt(f),
-            TemplateCodeGenerationError::IoError(e) => e.fmt(f),
             TemplateCodeGenerationError::SameFilenameError(e) => e.fmt(f),
-            TemplateCodeGenerationError::HandlebarsTemplateError(e) => e.fmt(f),
-            TemplateCodeGenerationError::HandlebarsTemplateFileError(e) => std::fmt::Display::fmt(&e, f),
-            TemplateCodeGenerationError::HandlebarsRenderError(e) => e.fmt(f)
+            TemplateCodeGenerationError::RendererError(e) => e.fmt(f)
         }
     }
 }
 
-impl From<NoValidResolveStrategyError> for TemplateCodeGenerationError {
+impl<'a, R: RendererError + 'a> From<R> for TemplateCodeGenerationError<'a> {
+    fn from(error: R) -> Self {
+        TemplateCodeGenerationError::RendererError(Box::new(error))
+    }
+}
+
+impl<'a> From<NoValidResolveStrategyError> for TemplateCodeGenerationError<'a> {
     fn from(e: NoValidResolveStrategyError) -> Self {
         TemplateCodeGenerationError::NoValidResolveStrategyError(e)
     }
 }
 
-impl From<std::io::Error> for TemplateCodeGenerationError {
-    fn from(e: std::io::Error) -> Self {
-        TemplateCodeGenerationError::IoError(e)
-    }
-}
-
-impl From<SameFilenameError> for TemplateCodeGenerationError {
+impl<'a> From<SameFilenameError> for TemplateCodeGenerationError<'a> {
     fn from(e: SameFilenameError) -> Self {
         TemplateCodeGenerationError::SameFilenameError(e)
     }

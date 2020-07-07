@@ -11,7 +11,7 @@ use crate::code_generator::api::method::Method;
 use serde::export::Formatter;
 
 pub trait Renderer {
-    type Error: std::error::Error;
+    type Error: RendererError;
 
     fn from_configuration(configuration: Configuration) -> Result<Self, Self::Error>
     where Self: Sized;
@@ -37,7 +37,7 @@ pub struct RendererImpl<'a> {
 }
 
 impl<'a> Renderer for RendererImpl<'a> {
-    type Error = HandlebarsRenderError;
+    type Error = HandlebarsRendererError;
 
     fn from_configuration(configuration: Configuration) -> Result<Self, Self::Error> {
         let mut  registry = Handlebars::new();
@@ -106,24 +106,24 @@ impl<'a> RendererImpl<'a> {
     const FILE_NAME_TEMPLATE_NAME_POSTFIX: &'static str = "_name";
     const RENAME_POSTFIX: &'static str = "_rename";
 
-    fn register_array_template(registry: &mut Handlebars, array_string: String) -> Result<(), HandlebarsRenderError> {
+    fn register_array_template(registry: &mut Handlebars, array_string: String) -> Result<(), HandlebarsRendererError> {
         registry.register_template_string(Self::ARRAY_TEMPLATE, array_string)?;
         Ok(())
     }
 
-    fn register_optional_template(registry: &mut Handlebars, optional_string: String) -> Result<(), HandlebarsRenderError> {
+    fn register_optional_template(registry: &mut Handlebars, optional_string: String) -> Result<(), HandlebarsRendererError> {
         registry.register_template_string(Self::OPTIONAL_TEMPLATE, optional_string)?;
         Ok(())
     }
 
-    fn register_template_file(registry: &mut Handlebars, template_file: &TemplateFile) -> Result<(), HandlebarsRenderError> {
+    fn register_template_file(registry: &mut Handlebars, template_file: &TemplateFile) -> Result<(), HandlebarsRendererError> {
         let template_path = &template_file.template_path;
         registry.register_template_string(Self::get_file_name_template_name(&template_path).as_str(), &template_file.target_path)?;
         registry.register_template_file(template_path.as_str(), template_path)?;
         Ok(())
     }
 
-    fn register_rename(registry: &mut Handlebars, rename: &Rename) -> Result<(), HandlebarsRenderError> {
+    fn register_rename(registry: &mut Handlebars, rename: &Rename) -> Result<(), HandlebarsRendererError> {
         let template_name = Self::get_rename_template_name(&rename.from);
         registry.register_template_string(template_name.as_str(), &rename.to)?;
         Ok(())
@@ -141,7 +141,7 @@ impl<'a> RendererImpl<'a> {
         result
     }
 
-    fn render_instance<T: Serialize>(&self, instance: &T, template_file: &TemplateFile) -> Result<TargetFile, HandlebarsRenderError> {
+    fn render_instance<T: Serialize>(&self, instance: &T, template_file: &TemplateFile) -> Result<TargetFile, HandlebarsRendererError> {
         let template_path = &template_file.template_path;
         let file_name = self.registry.render(Self::get_file_name_template_name(&template_path).as_str(), instance)?;
         let content = self.registry.render(&template_path, instance)?;
@@ -152,51 +152,55 @@ impl<'a> RendererImpl<'a> {
         })
     }
 
-    fn render_array_string(&self, value: String) -> Result<String, HandlebarsRenderError> {
+    fn render_array_string(&self, value: String) -> Result<String, HandlebarsRendererError> {
         let array_string = self.registry.render(Self::ARRAY_TEMPLATE, &SingleValueHolder { value })?;
         Ok(array_string)
     }
 
-    fn render_optional_string(&self, value: String) -> Result<String, HandlebarsRenderError> {
+    fn render_optional_string(&self, value: String) -> Result<String, HandlebarsRendererError> {
         let optional_string = self.registry.render(Self::OPTIONAL_TEMPLATE, &SingleValueHolder { value })?;
         Ok(optional_string)
     }
 }
 
+pub trait RendererError: std::error::Error {}
+
 #[derive(Debug)]
-pub enum HandlebarsRenderError {
+pub enum HandlebarsRendererError {
     TemplateError(TemplateError),
     TemplateFileError(TemplateFileError),
     RenderError(RenderError)
 }
 
-impl std::error::Error for HandlebarsRenderError {}
+impl RendererError for HandlebarsRendererError {}
 
-impl std::fmt::Display for HandlebarsRenderError {
+impl std::error::Error for HandlebarsRendererError {}
+
+impl std::fmt::Display for HandlebarsRendererError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            HandlebarsRenderError::TemplateError(error) => error.fmt(f),
-            HandlebarsRenderError::TemplateFileError(error) => error.fmt(f),
-            HandlebarsRenderError::RenderError(error) => error.fmt(f),
+            HandlebarsRendererError::TemplateError(error) => error.fmt(f),
+            HandlebarsRendererError::TemplateFileError(error) => error.fmt(f),
+            HandlebarsRendererError::RenderError(error) => error.fmt(f),
         }
     }
 }
 
-impl From<TemplateError> for HandlebarsRenderError {
+impl From<TemplateError> for HandlebarsRendererError {
     fn from(error: TemplateError) -> Self {
-        HandlebarsRenderError::TemplateError(error)
+        HandlebarsRendererError::TemplateError(error)
     }
 }
 
-impl From<TemplateFileError> for HandlebarsRenderError {
+impl From<TemplateFileError> for HandlebarsRendererError {
     fn from(error: TemplateFileError) -> Self {
-        HandlebarsRenderError::TemplateFileError(error)
+        HandlebarsRendererError::TemplateFileError(error)
     }
 }
 
-impl From<RenderError> for HandlebarsRenderError {
+impl From<RenderError> for HandlebarsRendererError {
     fn from(error: RenderError) -> Self {
-        HandlebarsRenderError::RenderError(error)
+        HandlebarsRendererError::RenderError(error)
     }
 }
 
