@@ -33,7 +33,7 @@ impl<R: Renderer> CodeGenerator<R> {
 
     pub fn generate(&self, api: RawApi) -> Result<TargetFiles, TemplateCodeGenerationError> {
         let mut target_files = TargetFiles::new();
-        let api = Api::new(api, &self.renderer);
+        let api = Api::new(api, &self.renderer)?;
 
         for template_file in self.configuration.template_files.iter() {
             let resolve_strategy = ResolveStrategy::try_from(&template_file.resolve_strategy)?;

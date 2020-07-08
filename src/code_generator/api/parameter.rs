@@ -11,19 +11,19 @@ pub struct Parameter {
 }
 
 impl Parameter {
-    pub fn new<R: Renderer>(raw_parameter: RawParameter, renderer: &R) -> Self {
+    pub fn new<R: Renderer>(raw_parameter: RawParameter, renderer: &R) -> Result<Self, R::Error> {
         let name = match raw_parameter.parameter_type.get_dto_name() {
             Some(dto_name) => {
                 let dto_name = Names::new(&dto_name);
-                renderer.render_rename(raw_parameter.name, &dto_name).unwrap()
+                renderer.render_rename(raw_parameter.name, &dto_name)?
             },
             None => raw_parameter.name
         };
         let parameter_type = renderer.render_type(&raw_parameter.parameter_type).unwrap();
 
-        Parameter {
+        Ok(Parameter {
             name,
             parameter_type
-        }
+        })
     }
 }

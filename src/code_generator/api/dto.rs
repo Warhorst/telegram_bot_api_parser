@@ -15,7 +15,7 @@ pub struct Dto {
 }
 
 impl Dto {
-    pub fn new<R: Renderer>(raw_dto: RawDto, renderer: &R) -> Self {
+    pub fn new<R: Renderer>(raw_dto: RawDto, renderer: &R) -> Result<Self, R::Error> {
         let name = Names::new(&raw_dto.name);
         let mut fields = Vec::new();
         let mut used_dto_names = HashSet::new();
@@ -26,13 +26,13 @@ impl Dto {
                     used_dto_names.insert(Names::new(&dto_name));
                 }
             }
-            fields.push(Field::new(raw_field, &name, renderer));
+            fields.push(Field::new(raw_field, &name, renderer)?);
         }
 
-        Dto {
+        Ok(Dto {
             name,
             fields,
             used_dto_names,
-        }
+        })
     }
 }

@@ -19,21 +19,21 @@ pub struct Api {
 }
 
 impl Api {
-    pub  fn new<R: Renderer>(raw_api: RawApi, renderer: &R) -> Self {
+    pub  fn new<R: Renderer>(raw_api: RawApi, renderer: &R) -> Result<Self, R::Error> {
         let mut dtos = Vec::new();
         let mut methods = Vec::new();
 
         for raw_dto in raw_api.raw_dtos {
-            dtos.push(Dto::new(raw_dto, renderer))
+            dtos.push(Dto::new(raw_dto, renderer)?)
         }
 
         for raw_method in raw_api.raw_methods {
-            methods.push(Method::new(raw_method, renderer))
+            methods.push(Method::new(raw_method, renderer)?)
         }
 
-        Api {
+        Ok(Api {
             dtos,
             methods
-        }
+        })
     }
 }

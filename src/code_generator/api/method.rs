@@ -14,7 +14,7 @@ pub struct Method {
 }
 
 impl Method {
-    pub fn new<R: Renderer>(raw_method: RawMethod, renderer: &R) -> Self {
+    pub fn new<R: Renderer>(raw_method: RawMethod, renderer: &R) -> Result<Self, R::Error> {
         let name = Names::new(&raw_method.name);
         let mut parameters = Vec::new();
         let mut used_dto_names = HashSet::new();
@@ -24,13 +24,13 @@ impl Method {
                 used_dto_names.insert(Names::new(&dto_name));
             }
 
-            parameters.push(Parameter::new(raw_parameter, renderer))
+            parameters.push(Parameter::new(raw_parameter, renderer)?)
         }
 
-        Method {
+        Ok(Method {
             name,
             parameters,
             used_dto_names
-        }
+        })
     }
 }
